@@ -1,4 +1,4 @@
-use crate::event::{Event, MessageEvent, MetaEvent};
+use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent};
 use async_trait::async_trait;
 use colored::*;
 use tracing::{event, Level};
@@ -15,10 +15,10 @@ pub fn message_logger(event: &MessageEvent) {
                 Level::INFO,
                 "{} [{}] -> {} from {}({})",
                 user_id.green(),
-                p.self_id.to_string().red(),
+                p.self_id.red(),
                 p.raw_message,
-                p.sender.nickname.to_string().blue(),
-                p.user_id.to_string().green(),
+                p.sender.nickname.blue(),
+                p.user_id.green(),
             )
         }
         MessageEvent::Group(g) => {
@@ -28,21 +28,101 @@ pub fn message_logger(event: &MessageEvent) {
             }
             event!(
                 Level::INFO,
-                "{} [{}] -> {} from {}({})",
+                "{} [{}] -> {} from {}({})[{}]",
                 group_id.magenta(),
-                g.self_id.to_string().red(),
+                g.self_id.red(),
                 g.raw_message,
-                g.sender.nickname.to_string().blue(),
-                g.user_id.to_string().green(),
+                g.sender.nickname.blue(),
+                g.sender.card.yellow(),
+                g.user_id.green(),
             )
         }
     }
 }
 
+
 /// Meta Event Logger
 pub fn meta_logger(event: &MetaEvent) {
     if &event.meta_event_type == "heartbeat" {
         event!(Level::TRACE, "Recive HeartBeat")
+    }
+}
+
+pub fn notice_logger(event: &NoticeEvent) {
+    match event {
+        NoticeEvent::Notify(n) => {
+            if let Some(group_id) = &n.group_id {
+                event!(Level::INFO,
+                "{} [{}] -> {} 戳了戳 {}",
+                group_id.magenta(),
+                n.self_id.red(),
+                n.user_id.green(),
+                n.target_id.blue(),
+                );
+            } else {
+                event!(Level::INFO,
+                "[{}] -> {} 戳了戳你",
+                n.self_id.red(),
+                n.user_id.green(),
+                );
+            }
+        },
+        NoticeEvent::FriendRecall(f) => {
+            event!(Level::INFO,
+                "[{}] -> {}撤回了一条消息",
+                f.self_id.red(),
+                f.user_id.green(),
+            );
+        },
+        NoticeEvent::GroupRecall(g) => {
+            event!(Level::INFO,
+                "{} [{}] -> {}撤回了一条消息",
+                g.group_id.magenta(),
+                g.self_id.red(),
+                g.user_id.green(),
+            );
+        },
+        NoticeEvent::GroupBan(g) => {
+            if g.sub_type == "ban" {
+                event!(Level::INFO,
+                    "{} [{}] -> {}被{}禁言{}秒",
+                    g.group_id.magenta(),
+                    g.self_id.red(),
+                    g.user_id.green(),
+                    g.operator_id.yellow(),
+                    g.duration.to_string().red(),
+                );
+            } else {
+                event!(Level::INFO,
+                    "{} [{}] -> {}被{}解除禁言",
+                    g.group_id.magenta(),
+                    g.self_id.red(),
+                    g.user_id.green(),
+                    g.operator_id.yellow(),
+                );
+            }
+
+        },
+        NoticeEvent::GroupIncrease(g) => {
+            event!(Level::INFO,
+                "{} [{}] -> 群聊人数增加{} 操作者{} 操作类型{}",
+                g.group_id.magenta(),
+                g.self_id.red(),
+                g.user_id.green(),
+                g.operator_id.yellow(),
+                g.sub_type.blue(),
+            );
+        },
+        NoticeEvent::GroupDecrease(g) => {
+            event!(Level::INFO,
+                "{} [{}] -> 群聊人数减少{} 操作者{} 操作类型{}",
+                g.group_id.magenta(),
+                g.self_id.red(),
+                g.user_id.green(),
+                g.operator_id.yellow(),
+                g.sub_type.blue(),
+            );
+        }
     }
 }
 
@@ -54,6 +134,7 @@ impl Logger {
         while let Ok(event) = event_receiver.recv().await {
             match &event {
                 Event::Message(m) => message_logger(m),
+                Event::Notice(m) => notice_logger(m),
                 Event::Meta(m) => meta_logger(m),
                 _ => {}
             }

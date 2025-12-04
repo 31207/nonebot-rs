@@ -1,0 +1,11 @@
+[package]
+name = "mybot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nonebot_rs = {path = "../nonebot_rs"}
+
+[dependencies.tracing]
+version = "0.1"
+features = ["std"]

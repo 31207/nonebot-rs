@@ -14,6 +14,8 @@ pub mod api;
 pub mod matchers;
 #[doc(hidden)]
 pub mod message_event_matcher;
+#[doc(hidden)]
+pub mod notice_event_matcher;
 /// Preludo for Matcher
 pub mod prelude;
 #[doc(hidden)]

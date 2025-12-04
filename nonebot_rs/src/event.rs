@@ -120,11 +120,14 @@ pub struct PrivateMessageEvent {
     pub sub_type: String,
     /// 消息 ID
     pub message_id: i32,
+    pub message_seq: i32,
     /// 发送者 ID
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// Array 消息内容
     pub message: Vec<Message>,
+    pub message_format: String,
+    pub raw_pb: String,
     /// 原生消息内容
     pub raw_message: String,
     /// 字体
@@ -141,10 +144,7 @@ pub struct PrivateSender {
     pub user_id: String,
     /// 昵称
     pub nickname: String,
-    /// 性别 male|female|unkown
-    pub sex: String,
-    /// 年龄
-    pub age: i32,
+    pub card: String,
 }
 
 /// 群消息事件
@@ -159,9 +159,15 @@ pub struct GroupMessageEvent {
     pub sub_type: String,
     /// 消息 ID
     pub message_id: i32,
+    /// ???
+    pub message_seq: i32,
+    pub message_format: String,
+    pub raw_pb: String,
+
     /// 群消息群号
     #[serde(deserialize_with = "id_deserializer")]
     pub group_id: String,
+    pub group_name: String,
     /// 发送者 ID
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
@@ -188,13 +194,13 @@ pub struct GroupSender {
     /// 群名片|备注
     pub card: String,
     /// 性别 male|female|unkown
-    pub sex: String,
+    // pub sex: String,
     /// 年龄
-    pub age: i32,
+    // pub age: i32,
     /// 地区
-    pub area: String,
+    // pub area: String,
     /// 成员等级
-    pub level: String,
+    // pub level: String,
     /// 角色 owner|admin|member
     pub role: String,
     /// 专属头衔
@@ -214,55 +220,192 @@ pub struct Anoymous {
 }
 
 /// 通知事件
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct NoticeEvent {
+//     /// Event 时间戳
+//     pub time: i64,
+//     /// 收到事件的机器人 QQ 号
+//     #[serde(deserialize_with = "id_deserializer")]
+//     pub self_id: String,
+//     /// 上报类型
+//     pub notice_type: String,
+//     /// 事件子类型
+//     pub sub_type: Option<String>,
+//     /// 群消息群号
+//     #[serde(deserialize_with = "option_id_deserializer")]
+//     #[serde(default)]
+//     pub group_id: Option<String>,
+//     /// 操作者 QQ 号
+//     #[serde(deserialize_with = "option_id_deserializer")]
+//     #[serde(default)]
+//     pub operator_id: Option<String>,
+//     /// 发送者 ID
+//     #[serde(deserialize_with = "id_deserializer")]
+//     pub user_id: String,
+//     /// 文件信息
+//     pub file: Option<File>,
+//     /// 禁言时长，单位秒
+//     pub duration: Option<i64>,
+//     /// 被撤回的消息 ID
+//     pub message_id: Option<i64>,
+//     /// 目标 QQ 号
+//     #[serde(deserialize_with = "option_id_deserializer")]
+//     #[serde(default)]
+//     pub target_id: Option<String>,
+//     /// 群荣耀类型
+//     pub honor_type: Option<String>,
+// }
+
+// /// 通知事件文件字段
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct File {
+//     /// 文件 ID
+//     pub id: String,
+//     /// 文件名
+//     pub name: String,
+//     /// 文件大小（字节数）
+//     pub size: i64,
+//     /// 用途未知
+//     pub busid: i64,
+// }
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NoticeEvent {
+#[serde(tag = "notice_type")]
+pub enum NoticeEvent {
+    #[serde(rename = "notify")]
+    Notify(NotifyNoticeEvent),
+
+    #[serde(rename = "friend_recall")]
+    FriendRecall(FriendRecallNoticeEvent),
+
+    #[serde(rename = "group_recall")]
+    GroupRecall(GroupRecallNoticeEvent),
+
+    #[serde(rename = "group_increase")]
+    GroupIncrease(GroupIncreaseNoticeEvent),
+
+    #[serde(rename = "group_decrease")]
+    GroupDecrease(GroupDecreaseNoticeEvent),
+
+    #[serde(rename = "group_ban")]
+    GroupBan(GroupBanNoticeEvent),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NotifyNoticeEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
     #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
-    /// 上报类型
-    pub notice_type: String,
     /// 事件子类型
     pub sub_type: Option<String>,
-    /// 群消息群号
-    #[serde(deserialize_with = "option_id_deserializer")]
-    #[serde(default)]
-    pub group_id: Option<String>,
-    /// 操作者 QQ 号
-    #[serde(deserialize_with = "option_id_deserializer")]
-    #[serde(default)]
-    pub operator_id: Option<String>,
     /// 发送者 ID
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
-    /// 文件信息
-    pub file: Option<File>,
-    /// 禁言时长，单位秒
-    pub duration: Option<i64>,
-    /// 被撤回的消息 ID
-    pub message_id: Option<i64>,
-    /// 目标 QQ 号
+    /// 被戳者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub target_id: String,
+    /// 群号
     #[serde(deserialize_with = "option_id_deserializer")]
-    #[serde(default)]
-    pub target_id: Option<String>,
-    /// 群荣耀类型
-    pub honor_type: Option<String>,
+    pub group_id: Option<String>,
+    /// 原始json数据
+    pub raw_info: serde_json::Value,
 }
 
-/// 通知事件文件字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct File {
-    /// 文件 ID
-    pub id: String,
-    /// 文件名
-    pub name: String,
-    /// 文件大小（字节数）
-    pub size: i64,
-    /// 用途未知
-    pub busid: i64,
+pub struct FriendRecallNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 被撤回的消息 ID
+    pub message_id: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupRecallNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 被撤回的消息 ID
+    pub message_id: i64,
+    /// 操作者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub operator_id: String,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupIncreaseNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 操作者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub operator_id: String,
+    /// 子类型
+    pub sub_type: String,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupDecreaseNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 操作者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub operator_id: String,
+    /// 子类型
+    pub sub_type: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupBanNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 操作者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub operator_id: String,
+    /// 禁言时长，单位秒
+    pub duration: i64,
+    /// 子类型
+    pub sub_type: String,
+}
 /// 请求事件
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RequestEvent {
@@ -337,7 +480,14 @@ impl UserId for MessageEvent {
 
 impl UserId for NoticeEvent {
     fn get_user_id(&self) -> String {
-        self.user_id.clone()
+        match self {
+            NoticeEvent::Notify(n) => n.user_id.clone(),
+            NoticeEvent::FriendRecall(f) => f.user_id.clone(),
+            NoticeEvent::GroupRecall(g) => g.user_id.clone(),
+            NoticeEvent::GroupIncrease(g) => g.user_id.clone(),
+            NoticeEvent::GroupDecrease(g) => g.user_id.clone(),
+            NoticeEvent::GroupBan(g) => g.user_id.clone(),
+        }
     }
 }
 
@@ -369,7 +519,14 @@ impl SelfId for RequestEvent {
 
 impl SelfId for NoticeEvent {
     fn get_self_id(&self) -> String {
-        self.self_id.clone()
+        match self {
+            NoticeEvent::Notify(n) => n.self_id.clone(),
+            NoticeEvent::FriendRecall(f) => f.self_id.clone(),
+            NoticeEvent::GroupRecall(g) => g.self_id.clone(),
+            NoticeEvent::GroupIncrease(g) => g.self_id.clone(),
+            NoticeEvent::GroupDecrease(g) => g.self_id.clone(),
+            NoticeEvent::GroupBan(g) => g.self_id.clone(),
+        }
     }
 }
 
@@ -391,5 +548,11 @@ impl SelfId for Event {
                 NbEvent::BotDisconnect { bot } => bot.bot_id.clone(),
             },
         }
+    }
+}
+
+impl GroupBanNoticeEvent {
+    pub fn is_ban_or_lift_ban(&self) -> bool {
+        self.sub_type == "ban"
     }
 }

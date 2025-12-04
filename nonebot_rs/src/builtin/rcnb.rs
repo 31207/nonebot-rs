@@ -1,5 +1,6 @@
 use crate::matcher::prelude::*;
-use rcnb_rs::encode;
+
+// 将所有东西编码为像rcnb那样的格式
 
 #[doc(hidden)]
 #[derive(Clone)]
@@ -14,7 +15,7 @@ impl Handler<MessageEvent> for Rcnb {
             .request_message(Some(&event), Some("Please enter something."))
             .await;
         if let Some(msg) = msg {
-            matcher.send_text(&encode(&msg)).await;
+            matcher.send_text(&rcnb_rs::encode(&msg)).await;
         }
     }
 }
@@ -22,6 +23,6 @@ impl Handler<MessageEvent> for Rcnb {
 /// rcnb！！！
 pub fn rcnb() -> Matcher<MessageEvent> {
     Matcher::new("Rcnb", Rcnb {})
-        .add_pre_matcher(prematchers::to_me())
-        .add_pre_matcher(prematchers::command_start())
+        //.add_pre_matcher(prematchers::to_me())
+        //.add_pre_matcher(prematchers::command_start())
 }

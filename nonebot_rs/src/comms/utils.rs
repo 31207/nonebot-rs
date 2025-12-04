@@ -45,6 +45,7 @@ pub async fn handler_web_socket(
                 // Onebot Api
                 crate::ApiChannelItem::Api(api) => {
                     let json_string = serde_json::to_string(&api).unwrap();
+                    //println!("-> {}",json_string);
                     sink.send(TuMessage::text(json_string)).await.unwrap();
                 }
                 // temp Matcher event
@@ -81,6 +82,7 @@ async fn stream_recv(
     if let Some(msg) = msg {
         use crate::event::RecvItem;
         if let Ok(msg) = msg {
+            //println!("{}",msg.to_text().unwrap());
             let data: serde_json::Result<RecvItem> = serde_json::from_str(msg.to_text().unwrap());
             match data {
                 Ok(data) => match data {
@@ -92,11 +94,11 @@ async fn stream_recv(
                 Err(e) => {
                     event!(
                         Level::ERROR,
-                        "Serialize msg failed! Msg:{:?}\nError:{}",
+                        "Serialize msg failed! Msg:{}\nError:{}",
                         msg.to_text().unwrap(),
                         e
                     );
-                    std::process::exit(101);
+                    //std::process::exit(101);
                 }
             }
         } else {

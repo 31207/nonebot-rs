@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+
 /// Onebot 协议消息定义
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "data")]
@@ -302,4 +303,106 @@ impl Message {
     );
     message_builder!(xml, Xml, data: String);
     message_builder!(json, Json, data: String);
+}
+#[derive(Debug)]
+pub enum FileType {
+    // url, timeout_seconds
+    Url(String, i64),
+    // local file path
+    Path(String),
+}
+
+pub struct UniMessage {
+    messages: Vec<Message>,
+}
+impl UniMessage {
+
+    fn load_file_as_base64(path: &str) -> Option<String> {
+    use base64::prelude::*;
+    use std::fs;
+    use tracing::{event, Level};
+    match fs::read(path) {
+        Ok(data) => Some(BASE64_STANDARD.encode(data)),
+        Err(e) => {
+            event!(Level::ERROR, "加载文件失败: {}\nerr:{}", path, e);
+            None
+        }
+    }
+}
+
+    pub fn new() -> Self {
+        Self {
+            messages: Vec::new(),
+        }
+    }
+
+    pub fn text(mut self, content: &str) -> UniMessage{
+        self.messages.push(Message::text(String::from(content)));
+        self
+    }
+    pub fn at(mut self, qq: String) -> UniMessage{
+        self.messages.push(Message::at(qq));
+        self    }
+    pub fn face(mut self, id: String) -> UniMessage {
+        self.messages.push(Message::face(id));
+        self
+    }
+    pub fn image(mut self, image: FileType) -> UniMessage {
+        match image {
+            FileType::Url(u, t) => {
+                self.messages.push(Message::image(
+                    String::from("url"),
+                    None,
+                    Some(u),
+                    Some(1),
+                    None,
+                    Some(t),
+                ));
+            }
+            FileType::Path(f) => {
+                if let Some(b64) = UniMessage::load_file_as_base64(&f) {
+                    self.messages.push(Message::image(
+                        String::from("base64://".to_owned() + &b64),
+                        None,
+                        None,
+                        Some(1),
+                        None,
+                        None,
+                    ));
+                }
+            }
+        }
+        self
+    }
+    /// record不可与其他消息类型组合发送！
+    pub fn record(mut self, record: FileType) -> UniMessage{
+         match record {
+            FileType::Url(u, t) => {
+                self.messages.push(Message::record(
+                    String::from("url"),
+                    None,
+                    Some(u),
+                    Some(1),
+                    None,
+                    Some(t),
+                ));
+            }
+            FileType::Path(f) => {
+                if let Some(b64) = UniMessage::load_file_as_base64(&f) {
+                    self.messages.push(Message::record(
+                        String::from("base64://".to_owned() + &b64),
+                        None,
+                        None,
+                        Some(1),
+                        None,
+                        None,
+                    ));
+                }
+            }
+        }
+        self
+    }
+    pub fn build(self) -> Vec<Message> {
+        self.messages
+    }
 }

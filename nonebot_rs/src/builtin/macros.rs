@@ -52,6 +52,17 @@ macro_rules! on_command {
     };
 }
 
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! on_message {
+    ($event_type: ty) => {
+        fn match_(&self, _: &mut $event_type) -> bool {
+            true
+        }
+    };
+}
+
+
 /// 注册字符匹配器
 ///
 /// 为 `Matcher` 注册一个字符匹配器，匹配字符将不会移除

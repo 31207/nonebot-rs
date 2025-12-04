@@ -1,5 +1,5 @@
 use crate::api_resp;
-use crate::event::MessageEvent;
+use crate::event::{MessageEvent, NoticeEvent};
 use crate::{api, config, message, utils, ApiChannelItem, ApiResp};
 use colored::*;
 use tokio::sync::{mpsc, watch};
@@ -89,6 +89,23 @@ impl Bot {
         match event {
             MessageEvent::Private(p) => self.send_private_msg(&p.user_id, msg).await,
             MessageEvent::Group(g) => self.send_group_msg(&g.group_id, msg).await,
+        }
+    }
+
+    pub async fn send_by_notice_event(&self, event: &NoticeEvent, msg: Vec<message::Message>) {
+        match event {
+            NoticeEvent::Notify(n) => {
+                if let Some(group_id) = &n.group_id {
+                    self.send_group_msg(&group_id.as_str(), msg).await;
+                } else {
+                    self.send_private_msg(&n.user_id.as_str(), msg).await;
+                }
+            },
+            NoticeEvent::FriendRecall(f) => self.send_private_msg(&f.user_id, msg).await,
+            NoticeEvent::GroupRecall(g) => self.send_group_msg(&g.group_id, msg).await,
+            NoticeEvent::GroupBan(g) => self.send_group_msg(&g.group_id, msg).await,
+            NoticeEvent::GroupDecrease(g) => self.send_group_msg(&g.group_id, msg).await,
+            NoticeEvent::GroupIncrease(g) => self.send_group_msg(&g.group_id, msg).await,
         }
     }
 
