@@ -40,7 +40,6 @@ pub fn message_logger(event: &MessageEvent) {
     }
 }
 
-
 /// Meta Event Logger
 pub fn meta_logger(event: &MetaEvent) {
     if &event.meta_event_type == "heartbeat" {
@@ -52,39 +51,44 @@ pub fn notice_logger(event: &NoticeEvent) {
     match event {
         NoticeEvent::Notify(n) => {
             if let Some(group_id) = &n.group_id {
-                event!(Level::INFO,
-                "{} [{}] -> {} 戳了戳 {}",
-                group_id.magenta(),
-                n.self_id.red(),
-                n.user_id.green(),
-                n.target_id.blue(),
+                event!(
+                    Level::INFO,
+                    "{} [{}] -> {} 戳了戳 {}",
+                    group_id.magenta(),
+                    n.self_id.red(),
+                    n.user_id.green(),
+                    n.target_id.blue(),
                 );
             } else {
-                event!(Level::INFO,
-                "[{}] -> {} 戳了戳你",
-                n.self_id.red(),
-                n.user_id.green(),
+                event!(
+                    Level::INFO,
+                    "[{}] -> {} 戳了戳你",
+                    n.self_id.red(),
+                    n.user_id.green(),
                 );
             }
-        },
+        }
         NoticeEvent::FriendRecall(f) => {
-            event!(Level::INFO,
+            event!(
+                Level::INFO,
                 "[{}] -> {}撤回了一条消息",
                 f.self_id.red(),
                 f.user_id.green(),
             );
-        },
+        }
         NoticeEvent::GroupRecall(g) => {
-            event!(Level::INFO,
+            event!(
+                Level::INFO,
                 "{} [{}] -> {}撤回了一条消息",
                 g.group_id.magenta(),
                 g.self_id.red(),
                 g.user_id.green(),
             );
-        },
+        }
         NoticeEvent::GroupBan(g) => {
             if g.sub_type == "ban" {
-                event!(Level::INFO,
+                event!(
+                    Level::INFO,
                     "{} [{}] -> {}被{}禁言{}秒",
                     g.group_id.magenta(),
                     g.self_id.red(),
@@ -93,7 +97,8 @@ pub fn notice_logger(event: &NoticeEvent) {
                     g.duration.to_string().red(),
                 );
             } else {
-                event!(Level::INFO,
+                event!(
+                    Level::INFO,
                     "{} [{}] -> {}被{}解除禁言",
                     g.group_id.magenta(),
                     g.self_id.red(),
@@ -101,10 +106,10 @@ pub fn notice_logger(event: &NoticeEvent) {
                     g.operator_id.yellow(),
                 );
             }
-
-        },
+        }
         NoticeEvent::GroupIncrease(g) => {
-            event!(Level::INFO,
+            event!(
+                Level::INFO,
                 "{} [{}] -> 群聊人数增加{} 操作者{} 操作类型{}",
                 g.group_id.magenta(),
                 g.self_id.red(),
@@ -112,9 +117,10 @@ pub fn notice_logger(event: &NoticeEvent) {
                 g.operator_id.yellow(),
                 g.sub_type.blue(),
             );
-        },
+        }
         NoticeEvent::GroupDecrease(g) => {
-            event!(Level::INFO,
+            event!(
+                Level::INFO,
                 "{} [{}] -> 群聊人数减少{} 操作者{} 操作类型{}",
                 g.group_id.magenta(),
                 g.self_id.red(),
@@ -122,6 +128,29 @@ pub fn notice_logger(event: &NoticeEvent) {
                 g.operator_id.yellow(),
                 g.sub_type.blue(),
             );
+        }
+        NoticeEvent::GroupMessageEmojiLike(g) => {
+            if g.is_add == true {
+                event!(
+                    Level::INFO,
+                    "{} [{}] -> {} add an emoji({}) to msg({})",
+                    g.group_id.magenta(),
+                    g.self_id.red(),
+                    g.user_id.green(),
+                    "todo",
+                    g.message_id.to_string().blue(),
+                );
+            } else {
+                event!(
+                    Level::INFO,
+                    "{} [{}] -> {} delete an emoji({}) at msg({})",
+                    g.group_id.magenta(),
+                    g.self_id.red(),
+                    g.user_id.green(),
+                    "todo",
+                    g.message_id.to_string().blue(),
+                );
+            }
         }
     }
 }

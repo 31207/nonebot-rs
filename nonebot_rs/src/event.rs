@@ -289,6 +289,9 @@ pub enum NoticeEvent {
 
     #[serde(rename = "group_ban")]
     GroupBan(GroupBanNoticeEvent),
+
+    #[serde(rename = "group_msg_emoji_like")]
+    GroupMessageEmojiLike(GroupMessageEmojiLikeNoticeEvent),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -406,6 +409,26 @@ pub struct GroupBanNoticeEvent {
     /// 子类型
     pub sub_type: String,
 }
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupMessageEmojiLikeNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// is add
+    pub is_add: bool,
+    /// likes
+    pub likes: serde_json::Value,
+    /// message_id
+    pub message_id: i64,
+}
 /// 请求事件
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RequestEvent {
@@ -487,6 +510,7 @@ impl UserId for NoticeEvent {
             NoticeEvent::GroupIncrease(g) => g.user_id.clone(),
             NoticeEvent::GroupDecrease(g) => g.user_id.clone(),
             NoticeEvent::GroupBan(g) => g.user_id.clone(),
+            NoticeEvent::GroupMessageEmojiLike(g) => g.user_id.clone(),
         }
     }
 }
@@ -526,6 +550,7 @@ impl SelfId for NoticeEvent {
             NoticeEvent::GroupIncrease(g) => g.self_id.clone(),
             NoticeEvent::GroupDecrease(g) => g.self_id.clone(),
             NoticeEvent::GroupBan(g) => g.self_id.clone(),
+            NoticeEvent::GroupMessageEmojiLike(g) => g.self_id.clone(),
         }
     }
 }

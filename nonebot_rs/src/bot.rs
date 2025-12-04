@@ -7,7 +7,7 @@ use tracing::{event, Level};
 
 mod _api;
 
-/// 为 Plugin 提供各类 Onebot Api 
+/// 为 Plugin 提供各类 Onebot Api
 #[derive(Debug, Clone)]
 pub struct Bot {
     /// bot id
@@ -100,12 +100,13 @@ impl Bot {
                 } else {
                     self.send_private_msg(&n.user_id.as_str(), msg).await;
                 }
-            },
+            }
             NoticeEvent::FriendRecall(f) => self.send_private_msg(&f.user_id, msg).await,
             NoticeEvent::GroupRecall(g) => self.send_group_msg(&g.group_id, msg).await,
             NoticeEvent::GroupBan(g) => self.send_group_msg(&g.group_id, msg).await,
             NoticeEvent::GroupDecrease(g) => self.send_group_msg(&g.group_id, msg).await,
             NoticeEvent::GroupIncrease(g) => self.send_group_msg(&g.group_id, msg).await,
+            NoticeEvent::GroupMessageEmojiLike(g) => self.send_group_msg(&g.group_id, msg).await,
         }
     }
 
