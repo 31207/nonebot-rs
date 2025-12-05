@@ -3,9 +3,9 @@
 /// 为 `Matcher` 注册一个匹配所有输入的 `match_` 函数
 #[allow(unused_macros)]
 #[macro_export]
-macro_rules! on_match_all {
-    () => {
-        fn match_(&self, _: &mut MessageEvent) -> bool {
+macro_rules! on_message {
+    ($event_type: ty) => {
+        fn match_(&self, _: &mut $event_type) -> bool {
             true
         }
     };
@@ -51,17 +51,6 @@ macro_rules! on_command {
         }
     };
 }
-
-#[allow(unused_macros)]
-#[macro_export]
-macro_rules! on_message {
-    ($event_type: ty) => {
-        fn match_(&self, _: &mut $event_type) -> bool {
-            true
-        }
-    };
-}
-
 
 /// 注册字符匹配器
 ///

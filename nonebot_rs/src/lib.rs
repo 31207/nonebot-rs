@@ -184,8 +184,6 @@ pub mod event;
 pub mod log;
 mod logger;
 /// Matchers Plugin
-#[cfg(feature = "matcher")]
-#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod matcher;
 #[doc(hidden)]
 pub mod message;
@@ -196,7 +194,7 @@ pub mod plugin;
 #[cfg(feature = "scheduler")]
 #[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
 pub mod scheduler;
-mod utils;
+pub mod utils;
 
 use std::collections::HashMap;
 use tokio::sync::{broadcast, mpsc, watch};
@@ -218,8 +216,6 @@ pub use plugin::Plugin;
 #[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
 pub use scheduler::Scheduler;
 
-#[cfg(feature = "matcher")]
-#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub use matcher::matchers::Matchers;
 
 /// Onebot Api mpsc channel Bot 发送 WebSocket 接收

@@ -1,4 +1,4 @@
-use crate::matcher::prelude::*;
+use nonebot_rs::matcher::prelude::*;
 
 #[derive(Debug)]
 struct Status {
@@ -7,7 +7,7 @@ struct Status {
 
 #[async_trait]
 impl Handler<MessageEvent> for Status {
-    crate::on_command!(MessageEvent, "status");
+    on_command!(MessageEvent, "status");
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
         matcher
             .send_text(&build_status(&event, &matcher).await)
@@ -25,7 +25,7 @@ async fn build_status(event: &MessageEvent, matcher: &Matcher<MessageEvent>) -> 
         None => 0,
     };
     let time: String = if let Some(bot) = &matcher.bot {
-        let connected_time = crate::utils::timestamp() - bot.connect_time;
+        let connected_time = nonebot_rs::utils::timestamp() - bot.connect_time;
         format_time(connected_time)
     } else {
         "-".to_string()

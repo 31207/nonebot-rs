@@ -86,25 +86,53 @@ pub fn notice_logger(event: &NoticeEvent) {
             );
         }
         NoticeEvent::GroupBan(g) => {
-            if g.sub_type == "ban" {
-                event!(
-                    Level::INFO,
-                    "{} [{}] -> {}被{}禁言{}秒",
-                    g.group_id.magenta(),
-                    g.self_id.red(),
-                    g.user_id.green(),
-                    g.operator_id.yellow(),
-                    g.duration.to_string().red(),
-                );
-            } else {
-                event!(
-                    Level::INFO,
-                    "{} [{}] -> {}被{}解除禁言",
-                    g.group_id.magenta(),
-                    g.self_id.red(),
-                    g.user_id.green(),
-                    g.operator_id.yellow(),
-                );
+            println!("{:?}", g);
+            match g.sub_type.as_str() {
+                "ban" => {
+                    event!(
+                        Level::INFO,
+                        "{} [{}] -> {}被{}禁言{}秒",
+                        g.group_id.magenta(),
+                        g.self_id.red(),
+                        g.user_id.green(),
+                        g.operator_id.yellow(),
+                        g.duration.to_string().red(),
+                    );
+                }
+                _ => match g.duration {
+                    0 if g.user_id == "0" => {
+                        event!(
+                            Level::INFO,
+                            "{} [{}] -> 群聊{}被{}解除全员禁言",
+                            g.group_id.magenta(),
+                            g.self_id.red(),
+                            g.group_id.green(),
+                            g.operator_id.yellow(),
+                        );
+                        return;
+                    }
+                    -1 => {
+                        event!(
+                            Level::INFO,
+                            "{} [{}] -> 群聊{}被{}设置全员禁言",
+                            g.group_id.magenta(),
+                            g.self_id.red(),
+                            g.group_id.green(),
+                            g.operator_id.yellow(),
+                        );
+                        return;
+                    }
+                    _ => {
+                        event!(
+                            Level::INFO,
+                            "{} [{}] -> {}被{}解除禁言",
+                            g.group_id.magenta(),
+                            g.self_id.red(),
+                            g.user_id.green(),
+                            g.operator_id.yellow(),
+                        );
+                    }
+                },
             }
         }
         NoticeEvent::GroupIncrease(g) => {
@@ -133,11 +161,11 @@ pub fn notice_logger(event: &NoticeEvent) {
             if g.is_add == true {
                 event!(
                     Level::INFO,
-                    "{} [{}] -> {} add an emoji({}) to msg({})",
+                    "{} [{}] -> {} 添加了一个emoji({}) to msg({})",
                     g.group_id.magenta(),
                     g.self_id.red(),
                     g.user_id.green(),
-                    "todo",
+                    g.likes.to_string().yellow(),
                     g.message_id.to_string().blue(),
                 );
             } else {
@@ -147,7 +175,7 @@ pub fn notice_logger(event: &NoticeEvent) {
                     g.group_id.magenta(),
                     g.self_id.red(),
                     g.user_id.green(),
-                    "todo",
+                    g.likes.to_string().yellow(),
                     g.message_id.to_string().blue(),
                 );
             }

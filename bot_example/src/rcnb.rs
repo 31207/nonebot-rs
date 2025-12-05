@@ -1,5 +1,5 @@
-use crate::matcher::prelude::*;
-
+use nonebot_rs::matcher::prelude::*;
+use rcnb_rs;
 // 将所有东西编码为像rcnb那样的格式
 
 #[doc(hidden)]
@@ -23,6 +23,6 @@ impl Handler<MessageEvent> for Rcnb {
 /// rcnb！！！
 pub fn rcnb() -> Matcher<MessageEvent> {
     Matcher::new("Rcnb", Rcnb {})
-        //.add_pre_matcher(prematchers::to_me())
-        //.add_pre_matcher(prematchers::command_start())
+    //.add_pre_matcher(prematchers::to_me())
+    //.add_pre_matcher(prematchers::command_start())
 }

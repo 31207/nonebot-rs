@@ -1,4 +1,4 @@
-use crate::matcher::prelude::*;
+use nonebot_rs::matcher::prelude::*;
 
 #[doc(hidden)]
 #[derive(Clone)]
@@ -60,7 +60,7 @@ impl Handler<MessageEvent> for Echo2 {
         if let Some(data) = config.get("max_times") {
             self.max_times = data.clone().try_into().expect("max_times 不是正整数");
         }
-        use tracing::{event, Level};
+        use tracing::{Level, event};
         event!(Level::DEBUG, "Load max echo times:{}", self.max_times);
     }
 }

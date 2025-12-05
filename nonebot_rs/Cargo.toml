@@ -14,9 +14,9 @@ rustdoc-args = ["--cfg", "docsrs"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["matcher", "scheduler", "tokio-cron-scheduler"]
+default = ["scheduler", "tokio-cron-scheduler"]
 
-matcher = ["rcnb-rs"]
+
 scheduler = ["tokio-cron-scheduler"]
 tokio-cron-scheduler = ["dep:tokio-cron-scheduler"]
 
@@ -30,7 +30,6 @@ toml = "0.5.8"
 async-trait = "0.1.51"
 async-recursion = "0.3.2"
 colored = "2.0.0"
-rcnb-rs = { version = "0.1.0", optional = true }
 config = "0.11.0"
 tokio-tungstenite = "0.15"
 base64 = "0.22.1"

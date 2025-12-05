@@ -47,7 +47,7 @@ impl Matcher<MessageEvent> {
 
         #[async_trait]
         impl Handler<MessageEvent> for Temp {
-            crate::on_match_all!();
+            crate::on_message!(MessageEvent);
             async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
                 matcher
                     .bot

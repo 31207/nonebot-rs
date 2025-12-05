@@ -142,6 +142,9 @@ name = "bot_example"
 version = "0.1.0"
 dependencies = [
  "nonebot_rs",
+ "rcnb-rs",
+ "tokio",
+ "toml",
  "tracing",
 ]
 
@@ -678,7 +681,6 @@ dependencies = [
  "futures-util",
  "headers",
  "http",
- "rcnb-rs",
  "serde 1.0.228",
  "serde_json",
  "tokio",

@@ -5,7 +5,14 @@ edition = "2024"
 
 [dependencies]
 nonebot_rs = {path = "../nonebot_rs"}
+toml = "0.5.8"
+rcnb-rs = "0.1.0"
 
 [dependencies.tracing]
 version = "0.1"
 features = ["std"]
+
+[dependencies.tokio]
+version = "1.10.0"
+features = ["sync"]
+
