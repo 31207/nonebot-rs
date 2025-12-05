@@ -143,7 +143,7 @@ pub fn notice_logger(event: &NoticeEvent) {
             } else {
                 event!(
                     Level::INFO,
-                    "{} [{}] -> {} delete an emoji({}) at msg({})",
+                    "{} [{}] -> {} 删除了一个emoji({}) at msg({})",
                     g.group_id.magenta(),
                     g.self_id.red(),
                     g.user_id.green(),

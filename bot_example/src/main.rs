@@ -1,5 +1,5 @@
 use nonebot_rs;
-use mybot::{myshit,notice_test};
+use bot_example::{myshit,notice_test};
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
     let mut matchers = nonebot_rs::Matchers::new_empty();
