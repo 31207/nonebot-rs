@@ -1,7 +1,7 @@
 use crate::config::BotConfig;
 use crate::event::MessageEvent;
 use crate::matcher::PreMatcher;
-use crate::message::Message;
+use crate::message::{Message,At};
 use crate::utils::remove_space;
 use std::sync::Arc;
 
@@ -21,7 +21,7 @@ pub fn to_me() -> Arc<PreMatcher<MessageEvent>> {
                 }
                 for message in &g.message {
                     match message {
-                        Message::At { qq: qq_id } => {
+                        Message::At( At{ qq: qq_id }) => {
                             if qq_id == &bot_id {
                                 g.raw_message = remove_space(
                                     &raw_message.replace(&format!("[CQ:at,qq={}]", g.self_id), ""),

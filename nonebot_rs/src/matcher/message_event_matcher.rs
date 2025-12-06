@@ -1,5 +1,5 @@
 use super::{build_temp_message_event_matcher, Handler, Matcher};
-use crate::event::MessageEvent;
+use crate::{event::MessageEvent, message::UniMessage};
 use crate::ApiChannelItem;
 use async_trait::async_trait;
 use colored::*;
@@ -8,10 +8,7 @@ use tracing::{event, Level};
 impl Matcher<MessageEvent> {
     /// 发送纯文本消息
     pub async fn send_text(&self, msg: &str) {
-        let msg = crate::message::Message::Text {
-            text: msg.to_string(),
-        };
-        self.send(vec![msg]).await;
+        self.send(UniMessage::new().text(msg).build()).await;
     }
 
     /// 设置临时 Matcher<MessageEvent>

@@ -3,3 +3,5 @@ pub mod echo;
 pub mod msg_event_test;
 pub mod notice_test;
 pub mod rcnb;
+pub mod count_msg_types;
+

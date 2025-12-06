@@ -1,4 +1,4 @@
-use bot_example::*;
+use bot_example::{count_msg_types::count_msg_types, *};
 use nonebot_rs;
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
@@ -9,7 +9,8 @@ fn main() {
         .add_message_matcher(rcnb::rcnb())
         .add_message_matcher(bot_status::bot_status(None))
         .add_notice_matcher(notice_test::notice_test())
-        .add_message_matcher(msg_event_test::msg_event_test());
+        .add_message_matcher(msg_event_test::msg_event_test())
+        .add_message_matcher(count_msg_types::count_msg_types());
     nb.add_plugin(matchers);
     nb.run()
 }

@@ -1,5 +1,5 @@
 use nonebot_rs::matcher::prelude::*;
-
+use nonebot_rs::message::UniMessage;
 #[doc(hidden)]
 #[derive(Clone)]
 pub struct Echo {}
@@ -9,10 +9,7 @@ pub struct Echo {}
 impl Handler<MessageEvent> for Echo {
     on_command!(MessageEvent, "echo", "Echo");
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-        let msg = Message::Text {
-            text: event.get_raw_message().to_string(),
-        };
-        matcher.send(vec![msg]).await;
+        matcher.send(UniMessage::new().text(event.get_raw_message()).build()).await;
     }
 }
 

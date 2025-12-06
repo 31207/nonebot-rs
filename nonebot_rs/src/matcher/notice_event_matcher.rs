@@ -1,15 +1,12 @@
 use super::Matcher;
-use crate::event::NoticeEvent;
+use crate::{event::NoticeEvent, message::UniMessage};
 use colored::*;
 use tracing::{event, Level};
 
 impl Matcher<NoticeEvent> {
     /// 发送纯文本消息
     pub async fn send_text(&self, msg: &str) {
-        let msg = crate::message::Message::Text {
-            text: msg.to_string(),
-        };
-        self.send(vec![msg]).await;
+        self.send(UniMessage::new().text(msg).build()).await;
     }
     /// 发送 Vec<Message> 消息
     pub async fn send(&self, msg: Vec<crate::message::Message>) {

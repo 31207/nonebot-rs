@@ -57,9 +57,9 @@ impl Handler<MessageEvent> for MsgEventTest {
                 UniMessage::new()
                     .at(event.get_user_id())
                     .text(format!("你已经发了{}条消息了", counter).as_str())
-                    .image(FileType::Path(String::from(
-                        "/home/dustwind/Pictures/1.gif",
-                    )))
+                    // .image(FileType::Path(String::from(
+                    //     "/home/dustwind/Pictures/1.gif",
+                    // )))
                     .text("good")
                     .build(),
             )
