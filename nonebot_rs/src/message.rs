@@ -87,59 +87,59 @@ pub enum Message {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Text {
-    text: String,
+    pub text: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Face {
     /// QQ 表情 ID
-    id: String,
+    pub id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Record {
     /// 语音文件名
-    file: String,
+    pub file: String,
     /// 是否变声 1|0
-    magic: Option<u8>,
+    pub magic: Option<u8>,
     /// 语音 URL    
-    url: Option<String>,
+    pub url: Option<String>,
     /// 是否使用缓存文件 1|0
-    cache: Option<u8>,
+    pub cache: Option<u8>,
     /// 是否使用代理 1|0
-    proxy: Option<u8>,
+    pub proxy: Option<u8>,
     /// 网络文件下载超时 单位秒
-    timeout: Option<i64>,
+    pub timeout: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Image {
     /// 图片文件名
-    file: String,
+    pub file: String,
     /// 图片类型 flash 闪照
     #[serde(rename = "type")]
-    type_: Option<String>,
+    pub type_: Option<String>,
     /// 图片 URL
-    url: Option<String>,
+    pub url: Option<String>,
     /// 是否使用缓存文件 1|0
-    cache: Option<u8>,
+    pub cache: Option<u8>,
     /// 是否使用代理 1|0
-    proxy: Option<u8>,
+    pub proxy: Option<u8>,
     /// 网络文件下载超时 单位秒
-    timeout: Option<i64>,
+    pub timeout: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Video {
     /// 视频文件名
-    file: String,
+    pub file: String,
     /// 视频 URL
-    url: Option<String>,
+    pub url: Option<String>,
     /// 是否使用缓存文件 1|0
-    cache: Option<u8>,
+    pub cache: Option<u8>,
     /// 是否使用代理 1|0
-    proxy: Option<u8>,
+    pub proxy: Option<u8>,
     /// 网络文件下载超时 单位秒
-    timeout: Option<i64>,
+    pub timeout: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -152,97 +152,97 @@ pub struct At {
 pub struct Poke {
     /// 类型
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
     /// ID
-    id: String,
+    pub id: String,
     /// 表情名
-    name: Option<String>,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Share {
     /// URL
-    url: String,
+    pub url: String,
     /// 标题
-    title: String,
+    pub title: String,
     /// 内容描述
-    content: Option<String>,
+    pub content: Option<String>,
     /// 图片 URl
-    image: Option<String>,
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Contact {
     /// 类型 qq|group
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
     /// QQ号|群号
-    id: String,
+    pub id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Lacation {
     /// 纬度
-    lat: String,
+    pub lat: String,
     /// 经度           
-    lon: String,
+    pub lon: String,
     /// 标题  
-    title: Option<String>,
+    pub title: Option<String>,
     /// 内容描述
-    content: Option<String>,
+    pub content: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Music {
     /// 类型 qq|163|xm|custom
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
     /// 歌曲 ID
-    id: Option<String>,
+    pub id: Option<String>,
     /// 点击后跳转 URL
-    url: Option<String>,
+    pub url: Option<String>,
     /// 歌曲 URL  
-    audio: Option<String>,
+    pub audio: Option<String>,
     /// 标题   
-    title: Option<String>,
+    pub title: Option<String>,
     /// 内容描述
-    content: Option<String>,
+    pub content: Option<String>,
     /// 图片 URl
-    image: Option<String>,
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Reply {
     /// 回复的消息 ID
-    id: String,
+    pub id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Forward {
     /// 合并转发 ID
-    id: String,
+    pub id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Node {
     /// 转发的消息 ID
-    id: Option<String>,
+    pub id: Option<String>,
     /// 发送者 QQ 号        
-    user_id: Option<String>,
+    pub user_id: Option<String>,
     /// 发送者昵称   
-    nickname: Option<String>,
+    pub nickname: Option<String>,
     /// 消息内容     
-    content: Option<Vec<Message>>,
+    pub content: Option<Vec<Message>>,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Xml {
     /// 回复的消息 ID
-    data: String,
+    pub data: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Json {
     /// 回复的消息 ID
-    data: String,
+    pub data: String,
 }
 // macro_rules! message_builder {
 //     ($fn_name: ident, $message_type: tt) => {

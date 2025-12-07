@@ -16,6 +16,19 @@ impl Handler<MessageEvent> for CountMsgType {
             match segment {
                 Message::Text(_) => text_count += 1,
                 Message::Image(_) => image_count += 1,
+                Message::Reply(r) => {
+                    let replied_msg = matcher.get_forward_msg(r.id.clone()).await;
+
+                    if let Some(replied_msg) = replied_msg {
+                        for replied_segment in replied_msg.message.iter() {
+                            match replied_segment {
+                                Message::Text(_) => text_count += 1,
+                                Message::Image(_) => image_count += 1,
+                                _ => other_count += 1,
+                            }
+                        }
+                    }
+                }
                 _ => other_count += 1,
             }
         }

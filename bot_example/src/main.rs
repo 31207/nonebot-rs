@@ -1,4 +1,4 @@
-use bot_example::{count_msg_types::count_msg_types, *};
+use bot_example::*;
 use nonebot_rs;
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();

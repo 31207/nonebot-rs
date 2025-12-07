@@ -88,5 +88,5 @@ pub fn msg_event_test() -> Matcher<MessageEvent> {
         },
     )
     .add_rule(rules::is_superuser())
-    .add_rule(rules::is_private_message_event())
+    .add_pre_matcher(prematchers::to_me())
 }

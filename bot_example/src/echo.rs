@@ -9,7 +9,7 @@ pub struct Echo {}
 impl Handler<MessageEvent> for Echo {
     on_command!(MessageEvent, "echo", "Echo");
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-        matcher.send(UniMessage::new().text(event.get_raw_message()).build()).await;
+        matcher.send_text(event.get_raw_message()).await;
     }
 }
 
