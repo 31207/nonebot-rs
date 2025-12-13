@@ -82,7 +82,7 @@ async fn stream_recv(
     if let Some(msg) = msg {
         use crate::event::RecvItem;
         if let Ok(msg) = msg {
-            //println!("{}",msg.to_text().unwrap());
+            println!("{}",msg.to_text().unwrap());
             let data: serde_json::Result<RecvItem> = serde_json::from_str(msg.to_text().unwrap());
             match data {
                 Ok(data) => match data {

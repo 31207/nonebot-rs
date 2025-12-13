@@ -352,6 +352,7 @@ pub enum FileType {
     Url(String, i64),
     // local file path
     Path(String),
+    Base64(String),
 }
 
 pub struct UniMessage {
@@ -383,6 +384,16 @@ impl UniMessage {
         }));
         self
     }
+
+    pub fn texts(mut self, contents: &Vec<String>) -> UniMessage {
+        for content in contents {
+            self.messages.push(Message::Text(Text {
+                text: String::from(content),
+            }));
+        }
+        self
+    }
+
     pub fn at(mut self, qq: String) -> UniMessage {
         self.messages.push(Message::At(At { qq: qq }));
         self
@@ -415,9 +426,27 @@ impl UniMessage {
                     }));
                 }
             }
+            FileType::Base64(b64) => {
+                self.messages.push(Message::Image(Image {
+                    file: String::from("base64://".to_owned() + &b64),
+                    type_: None,
+                    url: None,
+                    cache: Some(1),
+                    proxy: None,
+                    timeout: None,
+                }));
+            }
         }
         self
     }
+
+    pub fn images(mut self, images: Vec<FileType>) -> UniMessage {
+        for image in images {
+            self = self.image(image);
+        }
+        self
+    }
+
     /// record不可与其他消息类型组合发送！
     pub fn record(mut self, record: FileType) -> UniMessage {
         match record {
@@ -442,6 +471,16 @@ impl UniMessage {
                         timeout: None,
                     }));
                 }
+            }
+            FileType::Base64(b64) => {
+                self.messages.push(Message::Record(Record {
+                    file: String::from("base64://".to_owned() + &b64),
+                    magic: None,
+                    url: None,
+                    cache: Some(1),
+                    proxy: None,
+                    timeout: None,
+                }));
             }
         }
         self

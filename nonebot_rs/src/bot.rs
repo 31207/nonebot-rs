@@ -142,12 +142,15 @@ impl Bot {
         while let Ok(_) = watcher.changed().await {
             let resp = self.api_resp_watcher.borrow().clone();
             if resp.echo == echo {
+                //println!("Api Resp Watcher Got Resp!");
                 return Some(resp);
             }
             if utils::timestamp() > time + 30 {
+                //println!("Api Resp Watcher Timeout!");
                 return None;
             }
         }
+        //println!("Api Resp Watcher Closed!");
         None
     }
 }

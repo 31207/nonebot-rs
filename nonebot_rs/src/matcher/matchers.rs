@@ -166,7 +166,7 @@ fn log_load_matchers(matchers: &crate::Matchers) {
 
 fn log_matcherb<E>(matcherb: &MatchersBTreeMap<E>)
 where
-    E: Clone,
+    E: Clone + Send,
 {
     if matcherb.is_empty() {
         return;

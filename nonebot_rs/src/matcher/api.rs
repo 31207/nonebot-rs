@@ -85,7 +85,7 @@ macro_rules! resp_api {
 
 impl<E> Matcher<E>
 where
-    E: Clone + SelfId,
+    E: Clone + SelfId + Send,
 {
     /// 请求 Onebot Api，不等待 Onebot 返回
     pub async fn call_api(&self, api: crate::api::Api) {
@@ -187,57 +187,57 @@ where
 
     resp_api!(
         send_msg,
-        api_resp::MessageId,
+        api_resp::RespMessageId,
         message_type: Option<String>,
         user_id: Option<String>,
         group_id: Option<String>,
         message: Vec<crate::Message>,
         auto_escape: bool
     );
-    resp_api!(get_msg, api_resp::Message, message_id: i32);
-    resp_api!(get_forward_msg, api_resp::Message, id: String);
-    resp_api!(get_login_info, api_resp::LoginInfo);
+    resp_api!(get_msg, api_resp::RespMessage, message_id: i32);
+    resp_api!(get_forward_msg, api_resp::RespMessage, id: String);
+    resp_api!(get_login_info, api_resp::RespLoginInfo);
     resp_api!(
         get_stranger_info,
-        api_resp::StrangerInfo,
+        api_resp::RespStrangerInfo,
         user_id: String,
         no_cache: bool
     );
-    resp_api!(get_friend_list, Vec<api_resp::FriendListItem>);
+    resp_api!(get_friend_list, Vec<api_resp::RespFriendListItem>);
     resp_api!(
         get_group_info,
-        api_resp::GroupInfo,
+        api_resp::RespGroupInfo,
         group_id: String,
         no_cache: bool
     );
-    resp_api!(get_group_list, Vec<api_resp::GroupListItem>);
+    resp_api!(get_group_list, Vec<api_resp::RespGroupListItem>);
     resp_api!(
         get_group_member_info,
-        api_resp::GroupMemberInfo,
+        api_resp::RespGroupMemberInfo,
         group_id: String,
         user_id: String,
         no_cache: bool
     );
     resp_api!(
         get_group_member_list,
-        Vec<api_resp::GroupMember>,
+        Vec<api_resp::RespGroupMember>,
         group_id: String
     );
     resp_api!(
         get_group_honor_info,
-        api_resp::GroupHonorInfo,
+        api_resp::RespGroupHonorInfo,
         group_id: String,
         type_: String
     );
-    resp_api!(get_cookies, api_resp::Cookies, domain: String);
-    resp_api!(get_csrf_token, api_resp::ScrfToken);
-    resp_api!(get_credentials, api_resp::Credentials, domain: String);
-    resp_api!(get_record, api_resp::File, file: String, out_format: String);
-    resp_api!(get_image, api_resp::File, file: String);
-    resp_api!(can_send_record, api_resp::SendCheck);
-    resp_api!(can_send_image, api_resp::SendCheck);
+    resp_api!(get_cookies, api_resp::RespCookies, domain: String);
+    resp_api!(get_csrf_token, api_resp::RespScrfToken);
+    resp_api!(get_credentials, api_resp::RespCredentials, domain: String);
+    resp_api!(get_record, api_resp::RespFile, file: String, out_format: String);
+    resp_api!(get_image, api_resp::RespFile, file: String);
+    resp_api!(can_send_record, api_resp::RespSendCheck);
+    resp_api!(can_send_image, api_resp::RespSendCheck);
     resp_api!(get_status, crate::event::Status);
-    resp_api!(get_version_info, api_resp::VersionInfo);
+    resp_api!(get_version_info, api_resp::RespVersionInfo);
 
     // pub async fn get_friend_list(&self) -> Option<Vec<crate::api_resp::FriendListItem>> {
     //     if let Some(bot) = &self.bot {

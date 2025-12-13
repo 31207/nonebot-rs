@@ -70,6 +70,8 @@ pub async fn single_socket(
         retcode: 0,
         data: crate::api_resp::RespData::None,
         echo: "".to_string(),
+        message: "".to_string(),
+        wording: "".to_string(),
     });
 
     let ws_stream = client_async(req, tcp_stream).await;

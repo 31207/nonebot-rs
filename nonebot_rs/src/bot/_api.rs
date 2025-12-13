@@ -32,6 +32,7 @@ macro_rules! resp_api {
             let resp = self
                 .call_api_resp(api::Api::$fn_name(api::$struct_name { $param: $param }))
                 .await;
+            //println!("Resp: {:?}", resp);
             if let RespData::$resp_data(d) = resp.unwrap().data {
                 Some(d)
             } else {
@@ -166,45 +167,45 @@ impl super::Bot {
         send_msg,
         SendMsg,
         MessageId,
-        api_resp::MessageId,
+        api_resp::RespMessageId,
         message_type: Option<String>,
         user_id: Option<String>,
         group_id: Option<String>,
         message: Vec<crate::Message>,
         auto_escape: bool
     );
-    resp_api!(get_msg, GetMsg, Message, api_resp::Message, message_id: i32);
+    resp_api!(get_msg, GetMsg, Message, api_resp::RespMessage, message_id: i32);
     resp_api!(
         get_forward_msg,
         GetForwardMsg,
         Message,
-        api_resp::Message,
+        api_resp::RespMessage,
         id: String
     );
-    resp_api!(get_login_info, LoginInfo, api_resp::LoginInfo);
+    resp_api!(get_login_info, LoginInfo, api_resp::RespLoginInfo);
     resp_api!(
         get_stranger_info,
         GetStrangerInfo,
         StrangerInfo,
-        api_resp::StrangerInfo,
+        api_resp::RespStrangerInfo,
         user_id: String,
         no_cache: bool
     );
-    resp_api!(get_friend_list, FriendList, Vec<api_resp::FriendListItem>);
+    resp_api!(get_friend_list, FriendList, Vec<api_resp::RespFriendListItem>);
     resp_api!(
         get_group_info,
         GetGroupInfo,
         GroupInfo,
-        api_resp::GroupInfo,
+        api_resp::RespGroupInfo,
         group_id: String,
         no_cache: bool
     );
-    resp_api!(get_group_list, GroupList, Vec<api_resp::GroupListItem>);
+    resp_api!(get_group_list, GroupList, Vec<api_resp::RespGroupListItem>);
     resp_api!(
         get_group_member_info,
         GetGroupMemberInfo,
         GroupMemberInfo,
-        api_resp::GroupMemberInfo,
+        api_resp::RespGroupMemberInfo,
         group_id: String,
         user_id: String,
         no_cache: bool
@@ -213,14 +214,14 @@ impl super::Bot {
         get_group_member_list,
         GetGroupMemberList,
         GroupMemberList,
-        Vec<api_resp::GroupMember>,
+        Vec<api_resp::RespGroupMember>,
         group_id: String
     );
     resp_api!(
         get_group_honor_info,
         GetGroupHonorInfo,
         GroupHonorInfo,
-        api_resp::GroupHonorInfo,
+        api_resp::RespGroupHonorInfo,
         group_id: String,
         type_: String
     );
@@ -228,28 +229,28 @@ impl super::Bot {
         get_cookies,
         GetCookies,
         Cookies,
-        api_resp::Cookies,
+        api_resp::RespCookies,
         domain: String
     );
-    resp_api!(get_csrf_token, ScrfToken, api_resp::ScrfToken);
+    resp_api!(get_csrf_token, ScrfToken, api_resp::RespScrfToken);
     resp_api!(
         get_credentials,
         GetCookies,
         Credentials,
-        api_resp::Credentials,
+        api_resp::RespCredentials,
         domain: String
     );
     resp_api!(
         get_record,
         GetRecord,
         File,
-        api_resp::File,
+        api_resp::RespFile,
         file: String,
         out_format: String
     );
-    resp_api!(get_image, GetImage, File, api_resp::File, file: String);
-    resp_api!(can_send_record, SendCheck, api_resp::SendCheck);
-    resp_api!(can_send_image, SendCheck, api_resp::SendCheck);
+    resp_api!(get_image, GetImage, File, api_resp::RespFile, file: String);
+    resp_api!(can_send_record, SendCheck, api_resp::RespSendCheck);
+    resp_api!(can_send_image, SendCheck, api_resp::RespSendCheck);
     resp_api!(get_status, Status, crate::event::Status);
-    resp_api!(get_version_info, VersionInfo, api_resp::VersionInfo);
+    resp_api!(get_version_info, VersionInfo, api_resp::RespVersionInfo);
 }

@@ -43,7 +43,7 @@ impl Matchers {
             bot: crate::bot::Bot,
             disconnect: bool,
         ) where
-            E: Clone,
+            E: Clone + Send,
         {
             for (_, matcherh) in matcherb {
                 for (_, matcher) in matcherh {
@@ -54,6 +54,7 @@ impl Matchers {
                         lock_handler.on_bot_disconnect(matcher.clone());
                     } else {
                         lock_handler.on_bot_connect(matcher.clone());
+                        lock_handler.init().await;
                     }
                 }
             }
@@ -70,7 +71,7 @@ impl Matchers {
             matcherb: &MatchersBTreeMap<E>,
             config: &HashMap<String, HashMap<String, toml::Value>>,
         ) where
-            E: Clone,
+            E: Clone + Send,
         {
             for (_, matcherh) in matcherb {
                 for (matcher_name, matcher) in matcherh {
@@ -95,7 +96,7 @@ impl Matchers {
         mut matcher: Matcher<E>,
         action_sender: broadcast::Sender<MatchersAction>,
     ) where
-        E: Clone,
+        E: Clone + Send,
     {
         matcher.set_action_sender(action_sender);
         match matcherb.get_mut(&matcher.priority) {
@@ -146,7 +147,7 @@ impl Matchers {
     pub fn remove_matcher(&mut self, name: &str) {
         fn remove_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str)
         where
-            E: Clone,
+            E: Clone + Send,
         {
             for (_, matcherh) in matcherb.iter_mut() {
                 if let Some(_) = matcherh.remove(name) {
@@ -165,7 +166,7 @@ impl Matchers {
     pub fn disable_matcher(&mut self, name: &str, disable: bool) {
         fn disable_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str, disable: bool)
         where
-            E: Clone,
+            E: Clone + Send,
         {
             for (_, matcherh) in matcherb.iter_mut() {
                 if let Some(matcher) = matcherh.get_mut(name) {

@@ -64,13 +64,50 @@ pub fn in_group(group_id: String) -> Rule<MessageEvent> {
     Arc::new(in_group)
 }
 
+/// 判定 event 是否来自指定 private chat
+pub fn in_private_chat(user_id: String) -> Rule<MessageEvent> {
+    let in_private_chat = move |event: &MessageEvent, _: &BotConfig| -> bool {
+        if let MessageEvent::Private(p) = event {
+            if p.user_id == user_id {
+                return true;
+            }
+        }
+        false
+    };
+    Arc::new(in_private_chat)
+}
+
+/// 判定 event 是否来自指定groups
+pub fn in_groups(group_ids: Vec<String>) -> Rule<MessageEvent> {
+    let in_groups = move |event: &MessageEvent, _: &BotConfig| -> bool {
+        if let MessageEvent::Group(g) = event {
+            if group_ids.contains(&g.group_id) {
+                return true;
+            }
+        }
+        false
+    };
+    Arc::new(in_groups)
+}
+
 /// 判定 event 是否为私聊消息事件
 pub fn is_private_message_event() -> Rule<MessageEvent> {
     let is_private_message_event = |event: &MessageEvent, _: &BotConfig| -> bool {
         match event {
-            MessageEvent::Group(_) => false,
             MessageEvent::Private(_) => true,
+            _ => false,
         }
     };
     Arc::new(is_private_message_event)
+}
+
+/// 判定 event 是否为群消息事件
+pub fn is_group_message_event() -> Rule<MessageEvent> {
+    let is_group_message_event = |event: &MessageEvent, _: &BotConfig| -> bool {
+        match event {
+            MessageEvent::Group(_) => true,
+            _ => false,
+        }
+    };
+    Arc::new(is_group_message_event)
 }

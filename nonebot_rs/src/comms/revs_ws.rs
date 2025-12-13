@@ -93,6 +93,8 @@ async fn accept_connection(
         retcode: 0,
         data: crate::api_resp::RespData::None,
         echo: "".to_string(),
+        message: "".to_string(),
+        wording: "".to_string(),
     });
 
     // add bot to Nonebot
