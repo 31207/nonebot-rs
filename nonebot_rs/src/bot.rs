@@ -56,9 +56,8 @@ impl Bot {
             .unwrap();
         event!(
             Level::INFO,
-            "Bot [{}] Send {:?} to Group ({})",
+            "Bot [{}] Send a message to Group ({})",
             self.config.bot_id.red(),
-            msg,
             group_id.to_string().magenta()
         );
     }
@@ -77,9 +76,8 @@ impl Bot {
             .unwrap();
         event!(
             Level::INFO,
-            "Bot [{}] Send {:?} to Friend ({})",
+            "Bot [{}] Send a message to Friend ({})",
             self.config.bot_id.red(),
-            msg,
             user_id.to_string().green()
         );
     }

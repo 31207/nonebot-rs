@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use crate::meme_info::MemeInfo;
 use nonebot_rs::Message;
 use nonebot_rs::{matcher::prelude::*, message::FileType, message::UniMessage};
@@ -84,10 +86,14 @@ pub fn meme_parser() -> Matcher<MessageEvent> {
             meme_infos: Mutex::new(Vec::new()),
         },
     )
-    .add_rule(rules::is_superuser())
+    .add_rule(rules::in_groups(vec![
+        "657065745".to_string(),
+        "711674260".to_string(),
+        "904639279".to_string(),
+    ]))
 }
 
-/// 解析消息，提取文本和图片URL，包括第一层回复消息中的内容，丢弃其他类型消息
+/// 解析消息，提取文本，头像URL和图片URL，包括第一层回复消息中的图片url，丢弃其他类型消息
 async fn parse(msg: &Vec<Message>, matcher: &Matcher<MessageEvent>) -> (Vec<String>, Vec<String>) {
     let mut texts: Vec<String> = Vec::new();
     let mut images: Vec<String> = Vec::new();
@@ -108,6 +114,16 @@ async fn parse(msg: &Vec<Message>, matcher: &Matcher<MessageEvent>) -> (Vec<Stri
                     images.push(url.clone());
                 }
             }
+            Message::At(a) => {
+                if let Ok(qq) = a.qq.parse::<u64>() {
+                    images.push(format!(
+                        "http://q2.qlogo.cn/headimg_dl?dst_uin={}&spec=100",
+                        a.qq
+                    ));
+                } else {
+                    event!(Level::WARN, "解析At消息时，QQ号转换失败: {}", a.qq);
+                };
+            }
             Message::Reply(r) => {
                 let message_id = r.id.parse::<i32>().unwrap();
                 let replied_msg = matcher.get_msg(message_id).await;
@@ -117,15 +133,6 @@ async fn parse(msg: &Vec<Message>, matcher: &Matcher<MessageEvent>) -> (Vec<Stri
                             let replied_msg_content = g.message;
                             for segment in replied_msg_content.iter() {
                                 match segment {
-                                    Message::Text(t) => {
-                                        texts.append(
-                                            t.text
-                                                .split_whitespace()
-                                                .map(|s| s.to_string())
-                                                .collect::<Vec<String>>()
-                                                .as_mut(),
-                                        );
-                                    }
                                     Message::Image(i) => {
                                         if let Some(url) = &i.url {
                                             images.push(url.clone());
@@ -139,15 +146,6 @@ async fn parse(msg: &Vec<Message>, matcher: &Matcher<MessageEvent>) -> (Vec<Stri
                             let replied_msg_content = p.message;
                             for segment in replied_msg_content.iter() {
                                 match segment {
-                                    Message::Text(t) => {
-                                        texts.append(
-                                            t.text
-                                                .split_whitespace()
-                                                .map(|s| s.to_string())
-                                                .collect::<Vec<String>>()
-                                                .as_mut(),
-                                        );
-                                    }
                                     Message::Image(i) => {
                                         if let Some(url) = &i.url {
                                             images.push(url.clone());
@@ -190,9 +188,19 @@ fn is_count_vaild(
     {
         Ok(())
     } else {
+        let text_req = if min_texts == max_texts {
+            format!("{}", min_texts)
+        } else {
+            format!("{}-{}", min_texts, max_texts)
+        };
+        let image_req = if min_images == max_images {
+            format!("{}", min_images)
+        } else {
+            format!("{}-{}", min_images, max_images)
+        };
         Err(format!(
-            "文本或图片数量不符合要求: texts[{}, {}], images[{}, {}], 但是text: {}, image: {}",
-            min_texts, max_texts, min_images, max_images, text_count, image_count
+            "参数数量不符合要求: 需要文本{}个，图片{}个；但收到文本{}个，图片{}个, At的话会将头像也算作图片哦~",
+            text_req, image_req, text_count, image_count
         ))
     }
 }

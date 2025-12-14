@@ -10,7 +10,7 @@ mod tests {
     use std::fs;
     #[test]
     fn meme_info_parse_test() {
-        let content = fs::read_to_string("../meme_info.txt");
+        let content = fs::read_to_string("../meme_info.json");
         match content {
             Ok(content) => {
                 let val: Result<Vec<meme_info::MemeInfo>, serde_json::Error> =
@@ -52,6 +52,5 @@ mod tests {
                 panic!("Upload failed: {}", err);
             }
         }
-
     }
 }

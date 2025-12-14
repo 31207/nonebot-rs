@@ -10,8 +10,9 @@ impl Handler<MessageEvent> for Helper {
     }
 }
 
-pub fn helper() -> Matcher<MessageEvent>{
-    Matcher::new("helper", Helper{})
-    .add_rule(rules::is_superuser())
-    .add_pre_matcher(prematchers::command_start())
+pub fn helper() -> Matcher<MessageEvent> {
+    Matcher::new("helper", Helper {})
+        .add_rule(rules::is_superuser())
+        .add_pre_matcher(prematchers::command_start())
+        .add_rule(rules::is_group_message_event())
 }
