@@ -1,6 +1,6 @@
 use std::fmt::format;
 
-use crate::meme_info::MemeInfo;
+use crate::meme_info::{self, MemeInfo};
 use nonebot_rs::Message;
 use nonebot_rs::{matcher::prelude::*, message::FileType, message::UniMessage};
 use reqwest;
@@ -19,18 +19,16 @@ impl Handler<MessageEvent> for MemeParser {
             Ok(resp) => resp.text().await,
             Err(err) => Err(err),
         };
-        match result {
-            Ok(data) => {
-                let meme_info_tmp: Result<Vec<MemeInfo>, serde_json::Error> =
-                    serde_json::from_str(data.as_str());
-                match meme_info_tmp {
-                    Ok(m) => {
-                        *meme_infos = m;
-                    }
-                    Err(err) => {
-                        event!(Level::ERROR, "读取meme info错误: {}", err);
-                    }
-                }
+        let result = if let Ok(res) = result {
+            res
+        } else {
+            return event!(Level::ERROR, "请求meme info错误: {}", result.err().unwrap());
+        };
+        let meme_info_tmp: Result<Vec<MemeInfo>, serde_json::Error> =
+            serde_json::from_str(result.as_str());
+        match meme_info_tmp {
+            Ok(m) => {
+                *meme_infos = m;
             }
             Err(err) => {
                 event!(Level::ERROR, "读取meme info错误: {}", err);
@@ -49,32 +47,34 @@ impl Handler<MessageEvent> for MemeParser {
             return;
         }
         let meme_info = search_meme_by_keyword(texts[0].as_str(), &meme_infos);
-        match meme_info {
-            Some(meme_info) => match is_count_vaild(&meme_info, texts.len() - 1, images.len()) {
-                Ok(_) => {
-                    let make_result = make_meme(&meme_info, &texts[1..].to_vec(), &images).await;
-                    match make_result {
-                        Ok(base64_str) => {
-                            matcher
-                                .send(
-                                    UniMessage::new()
-                                        .image(FileType::Base64(base64_str))
-                                        .build(),
-                                )
-                                .await;
-                        }
-                        Err(err) => {
-                            matcher
-                                .send_text(format!("制作meme失败: {}", err).as_str())
-                                .await;
-                        }
-                    }
-                }
-                Err(err) => {
-                    matcher.send_text(format!("{}", err).as_str()).await;
-                }
-            },
-            None => return,
+
+        let meme_info = if let Some(meme_info) = meme_info {
+            meme_info
+        } else {
+            return;
+        };
+        match is_count_vaild(&meme_info, texts.len() - 1, images.len()) {
+            Ok(_) => {
+                let make_result = make_meme(&meme_info, &texts[1..].to_vec(), &images).await;
+                let base64_str = if let Ok(res) = make_result {
+                    res
+                } else {
+                    matcher
+                        .send_text(format!("制作meme失败: {}", make_result.err().unwrap()).as_str())
+                        .await;
+                    return;
+                };
+                matcher
+                    .send(
+                        UniMessage::new()
+                            .image(FileType::Base64(base64_str))
+                            .build(),
+                    )
+                    .await;
+            }
+            Err(err) => {
+                matcher.send_text(format!("{}", err).as_str()).await;
+            }
         }
     }
 }
@@ -127,32 +127,36 @@ async fn parse(msg: &Vec<Message>, matcher: &Matcher<MessageEvent>) -> (Vec<Stri
             Message::Reply(r) => {
                 let message_id = r.id.parse::<i32>().unwrap();
                 let replied_msg = matcher.get_msg(message_id).await;
-                if let Some(replied_msg) = replied_msg {
-                    match replied_msg {
-                        nonebot_rs::api_resp::RespMessage::Group(g) => {
-                            let replied_msg_content = g.message;
-                            for segment in replied_msg_content.iter() {
-                                match segment {
-                                    Message::Image(i) => {
-                                        if let Some(url) = &i.url {
-                                            images.push(url.clone());
-                                        }
-                                    }
-                                    _ => {}
-                                }
+                let replied_msg = if let Some(msg) = replied_msg {
+                    msg
+                } else {
+                    event!(Level::ERROR, "获取回复消息失败: {}", message_id);
+                    return (texts, images);
+                };
+                match replied_msg {
+                    nonebot_rs::api_resp::RespMessage::Group(g) => {
+                        let replied_msg_content = g.message;
+                        for segment in replied_msg_content.iter() {
+                            let segment = if let Message::Image(i) = segment {
+                                i
+                            } else {
+                                continue;
+                            };
+                            if let Some(url) = &segment.url {
+                                images.push(url.clone());
                             }
                         }
-                        nonebot_rs::api_resp::RespMessage::Private(p) => {
-                            let replied_msg_content = p.message;
-                            for segment in replied_msg_content.iter() {
-                                match segment {
-                                    Message::Image(i) => {
-                                        if let Some(url) = &i.url {
-                                            images.push(url.clone());
-                                        }
-                                    }
-                                    _ => {}
-                                }
+                    }
+                    nonebot_rs::api_resp::RespMessage::Private(p) => {
+                        let replied_msg_content = p.message;
+                        for segment in replied_msg_content.iter() {
+                            let segment = if let Message::Image(i) = segment {
+                                i
+                            } else {
+                                continue;
+                            };
+                            if let Some(url) = &segment.url {
+                                images.push(url.clone());
                             }
                         }
                     }
@@ -230,26 +234,28 @@ async fn make_meme(
         serde_json::json!({}),
     )
     .await;
-    match meme_result {
-        Ok(image_id) => {
-            event!(Level::INFO, "Meme created with image ID: {}", image_id);
-            let base64_result = crate::meme_api::get_image_base64(&image_id).await;
-            match base64_result {
-                Ok(base64_str) => {
-                    event!(
-                        Level::INFO,
-                        "Got base64 string of length: {}",
-                        base64_str.len()
-                    );
-                    return Ok(base64_str);
-                }
-                Err(err) => {
-                    return Err(format!("Get image base64 failed: {}", err));
-                }
-            }
-        }
-        Err(err) => {
-            return Err(format!("Create meme failed: {}", err));
-        }
-    }
+    let image_id = if let Ok(meme_result) = meme_result {
+        meme_result
+    } else {
+        return Err(format!(
+            "Create meme failed: {}",
+            meme_result.err().unwrap()
+        ));
+    };
+    event!(Level::INFO, "Meme created with image ID: {}", image_id);
+    let base64_result = crate::meme_api::get_image_base64(&image_id).await;
+    let base64_str = if let Ok(base64_str) = base64_result {
+        base64_str
+    } else {
+        return Err(format!(
+            "Get image base64 failed: {}",
+            base64_result.err().unwrap()
+        ));
+    };
+    event!(
+        Level::INFO,
+        "Got base64 string of length: {}",
+        base64_str.len()
+    );
+    return Ok(base64_str);
 }
