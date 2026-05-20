@@ -1,13 +1,8 @@
-use crate::{api, api_resp, RespData};
+use crate::onebot_apis;
+use crate::{api, RespData};
 
-macro_rules! no_resp_api {
-    ($fn_name: ident, $struct_name: tt, $param: ident: $param_type: ty) => {
-        pub async fn $fn_name(&self, $param: $param_type) {
-            self.call_api(api::Api::$fn_name(api::$struct_name { $param: $param }))
-                .await;
-        }
-    };
-    ($fn_name: ident, $struct_name: tt, $($param: ident: $param_type: ty),*) => {
+macro_rules! api_no_resp {
+    ($fn_name:ident, $struct_name:tt, $($param:ident: $param_type:ty),+) => {
         pub async fn $fn_name(&self, $($param: $param_type,)*) {
             self.call_api(api::Api::$fn_name(api::$struct_name {
                 $($param: $param,)*
@@ -16,8 +11,8 @@ macro_rules! no_resp_api {
     };
 }
 
-macro_rules! resp_api {
-    ($fn_name: ident,$resp_data: tt, $resp_data_type: ty) => {
+macro_rules! api_resp {
+    ($fn_name:ident, $struct_name:tt, $resp_data:tt, $resp_data_type:ty,) => {
         pub async fn $fn_name(&self) -> Option<$resp_data_type> {
             let resp = self.call_api_resp(api::Api::$fn_name()).await;
             if let RespData::$resp_data(d) = resp.unwrap().data {
@@ -27,20 +22,7 @@ macro_rules! resp_api {
             }
         }
     };
-    ($fn_name: ident, $struct_name: tt, $resp_data: tt, $resp_data_type: ty, $param: ident: $param_type: ty) => {
-        pub async fn $fn_name(&self, $param: $param_type) -> Option<$resp_data_type> {
-            let resp = self
-                .call_api_resp(api::Api::$fn_name(api::$struct_name { $param: $param }))
-                .await;
-            //println!("Resp: {:?}", resp);
-            if let RespData::$resp_data(d) = resp.unwrap().data {
-                Some(d)
-            } else {
-                None
-            }
-        }
-    };
-    ($fn_name: ident, $struct_name: tt, $resp_data: tt, $resp_data_type: ty, $($param: ident: $param_type: ty),*) => {
+    ($fn_name:ident, $struct_name:tt, $resp_data:tt, $resp_data_type:ty, $($param:ident: $param_type:ty),+) => {
         pub async fn $fn_name(&self, $($param: $param_type,)*) -> Option<$resp_data_type> {
             let resp = self
                 .call_api_resp(api::Api::$fn_name(api::$struct_name {
@@ -57,200 +39,5 @@ macro_rules! resp_api {
 }
 
 impl super::Bot {
-    // pub async fn delete_msg(&self, message_id: i32) {
-    //     self.call_api(Api::delete_msg(api::DeleteMsg {
-    //         message_id: message_id,
-    //     }))
-    //     .await;
-    // }
-    no_resp_api!(delete_msg, DeleteMsg, message_id: i32);
-    no_resp_api!(send_like, SendLike, user_id: String, times: u8);
-    no_resp_api!(
-        set_group_kick,
-        SetGroupKick,
-        group_id: String,
-        user_id: String,
-        reject_add_request: bool
-    );
-    no_resp_api!(
-        set_group_ban,
-        SetGroupBan,
-        group_id: String,
-        user_id: String,
-        duration: i64
-    );
-    no_resp_api!(
-        set_group_anonymous_ban,
-        SetGroupAnonymousBan,
-        group_id: String,
-        anonymous: crate::event::Anoymous,
-        flag: String,
-        duration: i64
-    );
-    no_resp_api!(
-        set_group_whole_ban,
-        SetGroupWholeBan,
-        group_id: String,
-        enable: bool
-    );
-    no_resp_api!(
-        set_group_admin,
-        SetGroupAdmin,
-        group_id: String,
-        user_id: String,
-        enable: bool
-    );
-    no_resp_api!(
-        set_group_anonymous,
-        SetGroupAnonymous,
-        group_id: String,
-        enable: bool
-    );
-    no_resp_api!(
-        set_group_card,
-        SetGroupCard,
-        group_id: String,
-        user_id: String,
-        card: String
-    );
-    no_resp_api!(
-        set_group_name,
-        SetGroupName,
-        group_id: String,
-        group_name: String
-    );
-    no_resp_api!(
-        set_group_leave,
-        SetGroupLeave,
-        group_id: String,
-        is_dismiss: bool
-    );
-    no_resp_api!(
-        set_group_special_title,
-        SetGroupSpecialTitle,
-        group_id: String,
-        user_id: String,
-        special_title: String,
-        duration: i64
-    );
-    no_resp_api!(
-        set_friend_add_request,
-        SetFriendAddRequest,
-        flag: String,
-        approve: bool,
-        remark: String
-    );
-    no_resp_api!(
-        set_group_add_request,
-        SetGroupAddRequest,
-        flag: String,
-        sub_type: String,
-        approve: bool,
-        reason: String
-    );
-    no_resp_api!(set_restart, SetRestart, delay: i64);
-
-    // 获取消息
-    // pub async fn get_msg(&self, message_id: i32) -> Option<api_resp::Message> {
-    //     let resp = self
-    //         .call_api_resp(Api::get_msg(api::GetMsg {
-    //             message_id: message_id,
-    //         }))
-    //         .await;
-    //     if let RespData::Message(m) = resp.unwrap().data {
-    //         Some(m)
-    //     } else {
-    //         None
-    //     }
-    // }
-    resp_api!(
-        send_msg,
-        SendMsg,
-        MessageId,
-        api_resp::RespMessageId,
-        message_type: Option<String>,
-        user_id: Option<String>,
-        group_id: Option<String>,
-        message: Vec<crate::Message>,
-        auto_escape: bool
-    );
-    resp_api!(get_msg, GetMsg, Message, api_resp::RespMessage, message_id: i32);
-    resp_api!(
-        get_forward_msg,
-        GetForwardMsg,
-        Message,
-        api_resp::RespMessage,
-        id: String
-    );
-    resp_api!(get_login_info, LoginInfo, api_resp::RespLoginInfo);
-    resp_api!(
-        get_stranger_info,
-        GetStrangerInfo,
-        StrangerInfo,
-        api_resp::RespStrangerInfo,
-        user_id: String,
-        no_cache: bool
-    );
-    resp_api!(get_friend_list, FriendList, Vec<api_resp::RespFriendListItem>);
-    resp_api!(
-        get_group_info,
-        GetGroupInfo,
-        GroupInfo,
-        api_resp::RespGroupInfo,
-        group_id: String,
-        no_cache: bool
-    );
-    resp_api!(get_group_list, GroupList, Vec<api_resp::RespGroupListItem>);
-    resp_api!(
-        get_group_member_info,
-        GetGroupMemberInfo,
-        GroupMemberInfo,
-        api_resp::RespGroupMemberInfo,
-        group_id: String,
-        user_id: String,
-        no_cache: bool
-    );
-    resp_api!(
-        get_group_member_list,
-        GetGroupMemberList,
-        GroupMemberList,
-        Vec<api_resp::RespGroupMember>,
-        group_id: String
-    );
-    resp_api!(
-        get_group_honor_info,
-        GetGroupHonorInfo,
-        GroupHonorInfo,
-        api_resp::RespGroupHonorInfo,
-        group_id: String,
-        type_: String
-    );
-    resp_api!(
-        get_cookies,
-        GetCookies,
-        Cookies,
-        api_resp::RespCookies,
-        domain: String
-    );
-    resp_api!(get_csrf_token, ScrfToken, api_resp::RespScrfToken);
-    resp_api!(
-        get_credentials,
-        GetCookies,
-        Credentials,
-        api_resp::RespCredentials,
-        domain: String
-    );
-    resp_api!(
-        get_record,
-        GetRecord,
-        File,
-        api_resp::RespFile,
-        file: String,
-        out_format: String
-    );
-    resp_api!(get_image, GetImage, File, api_resp::RespFile, file: String);
-    resp_api!(can_send_record, SendCheck, api_resp::RespSendCheck);
-    resp_api!(can_send_image, SendCheck, api_resp::RespSendCheck);
-    resp_api!(get_status, Status, crate::event::Status);
-    resp_api!(get_version_info, VersionInfo, api_resp::RespVersionInfo);
+    onebot_apis!();
 }

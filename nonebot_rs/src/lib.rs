@@ -9,6 +9,7 @@
 mod action;
 /// Onebot Api
 pub mod api;
+mod api_list;
 /// Onebot Api Response
 pub mod api_resp;
 pub mod bot;
