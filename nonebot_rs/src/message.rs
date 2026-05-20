@@ -83,6 +83,9 @@ pub enum Message {
     /// JSON 消息
     #[serde(rename = "json")]
     Json(Json),
+    /// 商城表情 (llonebot 扩展)
+    #[serde(rename = "mface")]
+    Mface(Mface),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -243,6 +246,19 @@ pub struct Xml {
 pub struct Json {
     /// 回复的消息 ID
     pub data: String,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Mface {
+    /// 表情描述/摘要
+    pub summary: String,
+    /// 表情图片 URL
+    pub url: String,
+    /// 表情 ID
+    pub emoji_id: String,
+    /// 表情包 ID
+    pub emoji_package_id: i64,
+    /// 表情 key
+    pub key: String,
 }
 // macro_rules! message_builder {
 //     ($fn_name: ident, $message_type: tt) => {

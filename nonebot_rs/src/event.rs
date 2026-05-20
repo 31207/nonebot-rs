@@ -478,6 +478,64 @@ fn de_test() {
     let _meta: Event = serde_json::from_str(test_str).unwrap();
 }
 
+#[test]
+fn de_group_mface_event() {
+    let json = r#"{
+        "self_id": 3579148268,
+        "user_id": 1635738402,
+        "time": 1779283951,
+        "message_id": 1335628842,
+        "message_seq": 478145,
+        "message_type": "group",
+        "sender": {
+            "user_id": 1635738402,
+            "nickname": "破损的海兔无人机",
+            "card": "",
+            "role": "member",
+            "level": "37",
+            "title": ""
+        },
+        "raw_message": "[CQ:mface,summary=&#91;摸头&#93;,url=https://gxh.vip.qq.com/club/item/parcel/item/3a/3a181abe476219e7a04163eab80fa274/raw300.gif,emoji_id=3a181abe476219e7a04163eab80fa274,emoji_package_id=244959,key=ea229eea083f3bbb]",
+        "font": 14,
+        "sub_type": "normal",
+        "message": [
+            {
+                "type": "mface",
+                "data": {
+                    "summary": "[摸头]",
+                    "url": "https://gxh.vip.qq.com/club/item/parcel/item/3a/3a181abe476219e7a04163eab80fa274/raw300.gif",
+                    "emoji_id": "3a181abe476219e7a04163eab80fa274",
+                    "emoji_package_id": 244959,
+                    "key": "ea229eea083f3bbb"
+                }
+            }
+        ],
+        "message_format": "array",
+        "post_type": "message",
+        "raw_pb": "",
+        "group_id": 650342021,
+        "group_name": "[2.07.2] Beebeeblock: 蜂蜂空坊交流群"
+    }"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Message(MessageEvent::Group(g)) => {
+            assert_eq!(g.group_id, "650342021");
+            assert_eq!(g.user_id, "1635738402");
+            assert_eq!(g.sender.nickname, "破损的海兔无人机");
+            assert_eq!(g.message.len(), 1);
+            match &g.message[0] {
+                crate::message::Message::Mface(m) => {
+                    assert_eq!(m.summary, "[摸头]");
+                    assert_eq!(m.emoji_id, "3a181abe476219e7a04163eab80fa274");
+                    assert_eq!(m.emoji_package_id, 244959);
+                }
+                _ => panic!("expected Mface message segment"),
+            }
+        }
+        _ => panic!("expected group message event"),
+    }
+}
+
 /// 元事件状态字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Status {
