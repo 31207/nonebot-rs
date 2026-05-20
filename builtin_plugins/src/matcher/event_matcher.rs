@@ -1,6 +1,5 @@
 use super::{build_temp_message_event_matcher, Handler, Matcher};
-use nonebot_rs::{event::MessageEvent, message::UniMessage};
-use nonebot_rs::ApiChannelItem;
+use nonebot_rs::{event::MessageEvent, event::NoticeEvent, message::UniMessage, ApiChannelItem};
 use async_trait::async_trait;
 use colored::*;
 use tracing::{event, Level};
@@ -100,15 +99,13 @@ impl Matcher<MessageEvent> {
                     event!(Level::DEBUG, "Temp Matcher TimeOut");
                     return None;
                 }
-                // 中转 temp Matcher 的 Remove Action
-                // ApiChannelItem::Action(action) => self.set(action).await,
                 _ => {
                     event!(
                         Level::WARN,
                         "{}",
                         "Temp Matcher接受端接收到错误Api或Action消息".bright_red()
                     );
-                } // 忽视 event 该 receiver 永不应该收到 event
+                }
             }
         }
 
@@ -119,6 +116,26 @@ impl Matcher<MessageEvent> {
     pub async fn send(&self, msg: Vec<nonebot_rs::message::Message>) {
         if let (Some(bot), Some(event)) = (&self.bot, &self.event) {
             bot.send_by_message_event(&event, msg).await;
+        } else {
+            event!(
+                Level::ERROR,
+                "{}",
+                "Sending msg with unbuilt matcher!".red()
+            );
+        }
+    }
+}
+
+impl Matcher<NoticeEvent> {
+    /// 发送纯文本消息
+    pub async fn send_text(&self, msg: &str) {
+        self.send(UniMessage::new().text(msg).build()).await;
+    }
+
+    /// 发送 Vec<Message> 消息
+    pub async fn send(&self, msg: Vec<nonebot_rs::message::Message>) {
+        if let (Some(bot), Some(event)) = (&self.bot, &self.event) {
+            bot.send_by_notice_event(&event, msg).await;
         } else {
             event!(
                 Level::ERROR,

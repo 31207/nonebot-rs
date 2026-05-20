@@ -1,6 +1,7 @@
 use bot_example::*;
 use nonebot_rs;
 use builtin_plugins::matcher::prelude::*;
+use builtin_plugins::logger;
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
     let mut matchers = Matchers::new_empty();
@@ -14,5 +15,6 @@ fn main() {
         .add_message_matcher(count_msg_types::count_msg_types());
     
     nb.add_plugin(matchers);
+    nb.add_plugin(logger::Logger);
     nb.run()
 }

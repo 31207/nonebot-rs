@@ -1,5 +1,5 @@
 use nonebot_rs::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
-use crate::matcher::{action::MatchersAction, Matcher};
+use crate::matcher::Matcher;
 use async_trait::async_trait;
 use colored::*;
 use std::collections::{BTreeMap, HashMap};
@@ -10,8 +10,19 @@ use tracing::{event, Level};
 pub type MatchersBTreeMap<E> = BTreeMap<i8, MatchersHashMap<E>>;
 /// 使用唯一名字存储 `Matcher`
 pub type MatchersHashMap<E> = HashMap<String, Matcher<E>>;
+/// Matchers 内部 Action
+#[derive(Clone, Debug)]
+pub enum MatchersAction {
+    /// 添加 MessageEvent Matcher
+    AddMessageEventMatcher {
+        message_event_matcher: Matcher<nonebot_rs::event::MessageEvent>,
+    },
+    /// 移除 Matcher
+    RemoveMatcher { matcher_name: String },
+}
+
 /// Matchers Action Sender
-pub type ActionSender = broadcast::Sender<super::action::MatchersAction>;
+pub type ActionSender = broadcast::Sender<MatchersAction>;
 
 pub const PLUGIN_NAME: &'static str = "Matcher";
 
@@ -129,6 +140,30 @@ impl Matchers {
             let bots = self.bot_getter.clone().unwrap().borrow().clone();
             if let Some(bot) = bots.get(&event.get_self_id()) {
                 self.handle_events(event, bot).await;
+            }
+        }
+    }
+
+    /// Matchers 处理 action method
+    pub fn handle_action(&mut self, action: MatchersAction) {
+        match action {
+            MatchersAction::AddMessageEventMatcher {
+                message_event_matcher,
+            } => {
+                event!(
+                    Level::DEBUG,
+                    "Adding Message Event Matcher: {}",
+                    message_event_matcher.name.blue()
+                );
+                self.add_message_matcher(message_event_matcher);
+            }
+            MatchersAction::RemoveMatcher { matcher_name } => {
+                event!(
+                    Level::DEBUG,
+                    "Removing Message Event Matcher: {}",
+                    matcher_name.blue()
+                );
+                self.remove_matcher(&matcher_name);
             }
         }
     }
