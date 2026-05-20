@@ -188,6 +188,11 @@ pub fn notice_logger(event: &NoticeEvent) {
 pub struct Logger;
 
 impl Logger {
+
+    pub fn new() -> Self {
+        Logger
+    }
+
     async fn event_recv(self, mut event_receiver: nonebot_rs::EventReceiver) {
         while let Ok(event) = event_receiver.recv().await {
             match &event {

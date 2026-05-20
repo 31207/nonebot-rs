@@ -39,6 +39,7 @@ pub struct PluginExample {
 //  - 可以在其他地方复用这些函数
 
 impl PluginExample {
+
     /// 处理消息事件的业务逻辑
     ///
     /// 接收一个共享计数器和一个消息事件引用，
