@@ -156,8 +156,10 @@ dependencies = [
  "async-trait",
  "colored",
  "nonebot_rs",
+ "serde 1.0.228",
  "serde_json",
  "tokio",
+ "tokio-cron-scheduler",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
 ]
@@ -720,7 +722,6 @@ dependencies = [
  "serde 1.0.228",
  "serde_json",
  "tokio",
- "tokio-cron-scheduler",
  "tokio-tungstenite",
  "toml 1.1.2+spec-1.1.0",
  "tracing",

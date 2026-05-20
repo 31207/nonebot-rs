@@ -26,10 +26,6 @@ pub mod message;
 mod nb;
 #[doc(hidden)]
 pub mod plugin;
-/// scheduler Plugin
-#[cfg(feature = "scheduler")]
-#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
-pub mod scheduler;
 pub mod utils;
 
 use std::collections::HashMap;
@@ -48,9 +44,7 @@ pub use message::Message;
 #[doc(inline)]
 pub use plugin::Plugin;
 
-#[cfg(feature = "scheduler")]
-#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
-pub use scheduler::Scheduler;
+
 
 /// Onebot Api mpsc channel Bot 发送 WebSocket 接收
 pub type ApiSender = mpsc::Sender<ApiChannelItem>;

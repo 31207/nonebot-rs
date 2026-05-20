@@ -13,13 +13,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-default = ["scheduler", "tokio-cron-scheduler"]
-
-
-scheduler = ["tokio-cron-scheduler"]
-tokio-cron-scheduler = ["dep:tokio-cron-scheduler"]
-
 [dependencies]
 tracing-subscriber = "0.2"
 headers = "0.3.4"
@@ -50,6 +43,4 @@ features = ["macros", "rt-multi-thread", "time", "sync"]
 version = "0.3.14"
 features = ["sink"]
 
-[dependencies.tokio-cron-scheduler]
-version = "0.2"
-optional = true
+

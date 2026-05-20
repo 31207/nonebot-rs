@@ -1,13 +1,13 @@
-// use std::collections::HashMap;
-use crate::log::{colored::*, event, Level};
 use async_trait::async_trait;
+use colored::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use tokio_cron_scheduler::{Job, JobScheduler};
+use tracing::{event, Level};
 
 /// Prelude for Scheduler Plugin
 pub mod prelude {
-    pub use crate::message::Message;
+    pub use nonebot_rs::message::Message;
     pub use tokio_cron_scheduler::Job;
 }
 
@@ -42,8 +42,8 @@ pub struct JobConfig {
 }
 
 #[async_trait]
-impl crate::Plugin for Scheduler {
-    fn run(&self, _: crate::EventReceiver, _: crate::BotGetter) {
+impl nonebot_rs::Plugin for Scheduler {
+    fn run(&self, _: nonebot_rs::EventReceiver, _: nonebot_rs::BotGetter) {
         if !self.config.disable {
             tokio::spawn(self.scheduler.start());
         }
