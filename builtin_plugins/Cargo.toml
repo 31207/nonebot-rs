@@ -1,0 +1,13 @@
+[package]
+name = "builtin_plugins"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nonebot_rs = {path = "../nonebot_rs"}
+async-trait = "0.1.51"
+colored = "2.0.0"
+tracing = "0.1.44"
+tokio = "1.52.3"
+toml = "1.1.2"
+serde_json = "1.0.149"

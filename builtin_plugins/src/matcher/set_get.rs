@@ -9,7 +9,7 @@ where
     /// 设置 Matcher 的 bot
     ///
     /// 当前 Matcher 如果已经预设 Bot 将会忽视传入的 Bot
-    pub fn build(&self, bot: crate::bot::Bot) -> Matcher<E> {
+    pub fn build(&self, bot: nonebot_rs::bot::Bot) -> Matcher<E> {
         let mut m = self.clone();
         if let None = &m.bot {
             m.bot = Some(bot);

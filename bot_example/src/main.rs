@@ -1,8 +1,9 @@
 use bot_example::*;
 use nonebot_rs;
+use builtin_plugins::matcher::prelude::*;
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
-    let mut matchers = nonebot_rs::Matchers::new_empty();
+    let mut matchers = Matchers::new_empty();
     matchers
         //    .add_message_matcher(nonebot_rs::builtin::echo::echo2())
         //    .add_message_matcher(nonebot_rs::builtin::echo::echo())
@@ -11,6 +12,7 @@ fn main() {
         .add_notice_matcher(notice_test::notice_test())
         .add_message_matcher(msg_event_test::msg_event_test())
         .add_message_matcher(count_msg_types::count_msg_types());
+    
     nb.add_plugin(matchers);
     nb.run()
 }

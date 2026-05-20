@@ -1,5 +1,5 @@
 use super::{Matchers, MatchersBTreeMap, MatchersHashMap};
-use crate::event::{MessageEvent, MetaEvent, NoticeEvent, RequestEvent};
+use nonebot_rs::event::{MessageEvent, MetaEvent, NoticeEvent, RequestEvent};
 use crate::matcher::{action::MatchersAction, Matcher};
 use std::collections::{BTreeMap, HashMap};
 use tokio::sync::broadcast;
@@ -37,10 +37,10 @@ impl Matchers {
     }
 
     /// Bot 连接时运行所有 Matcher on_bot_connect 方法
-    pub async fn run_on_connect(&self, bot: crate::bot::Bot, disconnect: bool) {
+    pub async fn run_on_connect(&self, bot: nonebot_rs::bot::Bot, disconnect: bool) {
         async fn run_on_connect_<E>(
             matcherb: &MatchersBTreeMap<E>,
-            bot: crate::bot::Bot,
+            bot: nonebot_rs::bot::Bot,
             disconnect: bool,
         ) where
             E: Clone + Send,

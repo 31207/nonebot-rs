@@ -1,6 +1,6 @@
-use crate::config::BotConfig;
-use crate::event::MessageEvent;
-use crate::event::{SelfId, UserId};
+use nonebot_rs::config::BotConfig;
+use nonebot_rs::event::MessageEvent;
+use nonebot_rs::event::{SelfId, UserId};
 use crate::matcher::Rule;
 use std::sync::Arc;
 

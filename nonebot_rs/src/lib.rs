@@ -11,9 +11,7 @@ mod action;
 pub mod api;
 /// Onebot Api Response
 pub mod api_resp;
-mod bot;
-/// 内建组件
-pub mod builtin;
+pub mod bot;
 #[doc(hidden)]
 pub mod comms;
 /// nbrs 设置项
@@ -22,9 +20,6 @@ pub mod config;
 pub mod event;
 /// logger
 pub mod log;
-mod logger;
-/// Matchers Plugin
-pub mod matcher;
 #[doc(hidden)]
 pub mod message;
 mod nb;
@@ -55,8 +50,6 @@ pub use plugin::Plugin;
 #[cfg(feature = "scheduler")]
 #[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
 pub use scheduler::Scheduler;
-
-pub use matcher::matchers::Matchers;
 
 /// Onebot Api mpsc channel Bot 发送 WebSocket 接收
 pub type ApiSender = mpsc::Sender<ApiChannelItem>;

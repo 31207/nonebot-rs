@@ -1,4 +1,5 @@
-use nonebot_rs::{matcher::prelude::*, message::UniMessage};
+use nonebot_rs::message::UniMessage;
+use builtin_plugins::matcher::prelude::*;
 use tracing::{Level, event};
 // 测试notice事件是否能响应
 

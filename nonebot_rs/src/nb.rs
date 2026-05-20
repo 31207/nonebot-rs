@@ -77,7 +77,6 @@ impl Nonebot {
             "{}",
             "高性能自律実験4号機が稼働中····".red()
         );
-        self.add_plugin(crate::logger::Logger);
         for (plugin_name, plugin) in &mut self.plugins {
             let plugin_config: Option<toml::Value> =
                 self.config.get_config(&plugin.plugin_name().to_lowercase());

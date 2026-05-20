@@ -1,6 +1,6 @@
 use super::{build_temp_message_event_matcher, Handler, Matcher};
-use crate::{event::MessageEvent, message::UniMessage};
-use crate::ApiChannelItem;
+use nonebot_rs::{event::MessageEvent, message::UniMessage};
+use nonebot_rs::ApiChannelItem;
 use async_trait::async_trait;
 use colored::*;
 use tracing::{event, Level};
@@ -35,7 +35,7 @@ impl Matcher<MessageEvent> {
         if let Some(event) = event {
             let raw_message = event.get_raw_message();
             if !raw_message.is_empty() {
-                return Some(crate::utils::remove_space(raw_message));
+                return Some(nonebot_rs::utils::remove_space(raw_message));
             }
         }
 
@@ -69,9 +69,9 @@ impl Matcher<MessageEvent> {
         // 根据提供的 event Handler 构建仅指向当先通话的 Temp Matcher
         let mut m = build_temp_message_event_matcher(&event, Temp);
         // 使用临时通道构建专用 Bot
-        let bot = crate::bot::Bot::new(
+        let bot = nonebot_rs::bot::Bot::new(
             "Temp".to_string(),
-            crate::config::BotConfig::default(),
+            nonebot_rs::config::BotConfig::default(),
             sender,
             self.bot.clone().unwrap().action_sender.clone(),
             self.bot.clone().unwrap().api_resp_watcher.clone(),
@@ -89,7 +89,7 @@ impl Matcher<MessageEvent> {
         while let Some(data) = receiver.recv().await {
             match data {
                 ApiChannelItem::MessageEvent(event) => {
-                    let msg = crate::utils::remove_space(event.get_raw_message());
+                    let msg = nonebot_rs::utils::remove_space(event.get_raw_message());
                     if msg.is_empty() {
                         return None;
                     } else {
@@ -116,7 +116,7 @@ impl Matcher<MessageEvent> {
     }
 
     /// 发送 Vec<Message> 消息
-    pub async fn send(&self, msg: Vec<crate::message::Message>) {
+    pub async fn send(&self, msg: Vec<nonebot_rs::message::Message>) {
         if let (Some(bot), Some(event)) = (&self.bot, &self.event) {
             bot.send_by_message_event(&event, msg).await;
         } else {

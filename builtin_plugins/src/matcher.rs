@@ -1,13 +1,12 @@
-use crate::config::BotConfig;
-use crate::event::{MessageEvent, SelfId};
-use crate::utils::timestamp;
-use crate::Action;
+use nonebot_rs::config::BotConfig;
+use nonebot_rs::event::{MessageEvent, SelfId};
+use nonebot_rs::utils::timestamp;
+use nonebot_rs::Action;
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-mod action;
+pub mod action;
 #[doc(hidden)]
 pub mod api;
 #[doc(hidden)]
@@ -20,6 +19,10 @@ pub mod notice_event_matcher;
 pub mod prelude;
 #[doc(hidden)]
 pub mod set_get;
+pub mod rules;
+pub mod prematchers;
+pub mod macros;
+
 
 /// rule 函数类型
 pub type Rule<E> = Arc<dyn Fn(&E, &BotConfig) -> bool + Send + Sync>;
@@ -37,7 +40,7 @@ where
     /// Matcher 名称，是 Matcher 的唯一性标识
     pub name: String,
     /// Bot
-    pub bot: Option<crate::bot::Bot>,
+    pub bot: Option<nonebot_rs::bot::Bot>,
     /// Matchers Action Sender
     action_sender: Option<matchers::ActionSender>,
     /// Matcher 的匹配优先级
@@ -225,7 +228,7 @@ pub fn build_temp_message_event_matcher<H>(
 where
     H: Handler<MessageEvent> + Send + Sync + 'static,
 {
-    use crate::event::UserId;
+    use nonebot_rs::event::UserId;
     let mut m = Matcher::new(
         &format!(
             "{}-{}-{}",
@@ -235,12 +238,12 @@ where
         ),
         handler,
     )
-    .add_rule(crate::builtin::rules::is_user(event.get_user_id()))
-    .add_rule(crate::builtin::rules::is_bot(event.get_self_id()));
+    .add_rule(crate::matcher::rules::is_user(event.get_user_id()))
+    .add_rule(crate::matcher::rules::is_bot(event.get_self_id()));
     if let MessageEvent::Group(g) = event {
-        m.add_rule(crate::builtin::rules::in_group(g.group_id.clone()));
+        m.add_rule(crate::matcher::rules::in_group(g.group_id.clone()));
     } else {
-        m.add_rule(crate::builtin::rules::is_private_message_event());
+        m.add_rule(crate::matcher::rules::is_private_message_event());
     }
     m.set_priority(0)
         .set_temp(true)

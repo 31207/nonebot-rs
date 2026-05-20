@@ -1,4 +1,4 @@
 [workspace]
-members = [ "bot_example", "mybot",
+members = [ "bot_example", "builtin_plugins",
   "nonebot_rs"
 ]

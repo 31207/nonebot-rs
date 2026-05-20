@@ -1,9 +1,10 @@
-use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent};
+use nonebot_rs::event::{Event, MessageEvent, MetaEvent, NoticeEvent};
 use async_trait::async_trait;
 use colored::*;
 use tracing::{event, Level};
 
 /// Message Event Logger
+/// 内置 Logger Plugin，记录消息事件、通知事件和元事件
 pub fn message_logger(event: &MessageEvent) {
     match &event {
         MessageEvent::Private(p) => {
@@ -187,7 +188,7 @@ pub fn notice_logger(event: &NoticeEvent) {
 pub struct Logger;
 
 impl Logger {
-    async fn event_recv(self, mut event_receiver: crate::EventReceiver) {
+    async fn event_recv(self, mut event_receiver: nonebot_rs::EventReceiver) {
         while let Ok(event) = event_receiver.recv().await {
             match &event {
                 Event::Message(m) => message_logger(m),
@@ -200,8 +201,8 @@ impl Logger {
 }
 
 #[async_trait]
-impl crate::Plugin for Logger {
-    fn run(&self, event_receiver: crate::EventReceiver, _: crate::BotGetter) {
+impl nonebot_rs::Plugin for Logger {
+    fn run(&self, event_receiver: nonebot_rs::EventReceiver, _: nonebot_rs::BotGetter) {
         let l = self.clone();
         tokio::spawn(l.event_recv(event_receiver));
     }

@@ -1,6 +1,6 @@
 use super::Matcher;
-use crate::api_resp;
-use crate::event::SelfId;
+use nonebot_rs::api_resp;
+use nonebot_rs::event::SelfId;
 use colored::*;
 use tracing::{event, Level};
 
@@ -88,7 +88,7 @@ where
     E: Clone + SelfId + Send,
 {
     /// 请求 Onebot Api，不等待 Onebot 返回
-    pub async fn call_api(&self, api: crate::api::Api) {
+    pub async fn call_api(&self, api: nonebot_rs::api::Api) {
         if let Some(bot) = &self.bot {
             bot.call_api(api).await;
         } else {
@@ -101,7 +101,7 @@ where
     }
 
     /// 请求 Onebot Api，等待 Onebot 返回项（30s 后 timeout 返回 None）
-    pub async fn call_api_resp(&self, api: crate::api::Api) -> Option<crate::api_resp::ApiResp> {
+    pub async fn call_api_resp(&self, api: nonebot_rs::api::Api) -> Option<nonebot_rs::api_resp::ApiResp> {
         if let Some(bot) = &self.bot {
             bot.call_api_resp(api).await
         } else {
@@ -143,7 +143,7 @@ where
     no_resp_api!(
         set_group_anonymous_ban,
         group_id: String,
-        anonymous: crate::event::Anoymous,
+        anonymous: nonebot_rs::event::Anoymous,
         flag: String,
         duration: i64
     );
@@ -191,7 +191,7 @@ where
         message_type: Option<String>,
         user_id: Option<String>,
         group_id: Option<String>,
-        message: Vec<crate::Message>,
+        message: Vec<nonebot_rs::message::Message>,
         auto_escape: bool
     );
     resp_api!(get_msg, api_resp::RespMessage, message_id: i32);
@@ -236,10 +236,10 @@ where
     resp_api!(get_image, api_resp::RespFile, file: String);
     resp_api!(can_send_record, api_resp::RespSendCheck);
     resp_api!(can_send_image, api_resp::RespSendCheck);
-    resp_api!(get_status, crate::event::Status);
+    resp_api!(get_status, nonebot_rs::event::Status);
     resp_api!(get_version_info, api_resp::RespVersionInfo);
 
-    // pub async fn get_friend_list(&self) -> Option<Vec<crate::api_resp::FriendListItem>> {
+    // pub async fn get_friend_list(&self) -> Option<Vec<nonebot_rs::api_resp::FriendListItem>> {
     //     if let Some(bot) = &self.bot {
     //         bot.get_friend_list().await
     //     } else {

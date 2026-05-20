@@ -1,4 +1,4 @@
-use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
+use nonebot_rs::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
 use crate::matcher::Matcher;
 use async_trait::async_trait;
 use colored::*;
@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, HashMap};
 use tokio::sync::broadcast;
 use tracing::{event, Level};
 
-mod action;
+pub mod action;
 
 /// 按 `priority` 依序存储 `MatchersHashMap`
 pub type MatchersBTreeMap<E> = BTreeMap<i8, MatchersHashMap<E>>;
@@ -29,7 +29,7 @@ pub struct Matchers {
     /// MetaEvent 对应 MatcherBTreeMap
     pub meta: MatchersBTreeMap<MetaEvent>,
     /// Bot Watch channel Receiver
-    bot_getter: Option<crate::BotGetter>,
+    bot_getter: Option<nonebot_rs::BotGetter>,
     /// Matchers Action Sender
     action_sender: ActionSender,
     /// Config
@@ -37,7 +37,7 @@ pub struct Matchers {
 }
 
 impl Matchers {
-    async fn handle_events(&mut self, event: Event, bot: &crate::bot::Bot) {
+    async fn handle_events(&mut self, event: Event, bot: &nonebot_rs::bot::Bot) {
         match event {
             Event::Message(e) => {
                 self.handle_event(self.message.clone(), e, bot.clone())
@@ -54,11 +54,11 @@ impl Matchers {
                 self.handle_event(self.meta.clone(), e, bot.clone()).await;
             }
             Event::Nonebot(e) => match e {
-                crate::event::NbEvent::BotConnect { bot } => {
+                nonebot_rs::event::NbEvent::BotConnect { bot } => {
                     log_load_matchers(&self);
                     self.run_on_connect(bot, false).await;
                 }
-                crate::event::NbEvent::BotDisconnect { bot } => {
+                nonebot_rs::event::NbEvent::BotDisconnect { bot } => {
                     self.run_on_connect(bot, true).await;
                 }
             },
@@ -70,7 +70,7 @@ impl Matchers {
         &mut self,
         mut matcherb: MatchersBTreeMap<E>,
         event: E,
-        bot: crate::bot::Bot,
+        bot: nonebot_rs::bot::Bot,
     ) where
         E: Clone + Send + 'static + std::fmt::Debug + SelfId,
     {
@@ -91,7 +91,7 @@ impl Matchers {
         &mut self,
         matcherh: &mut MatchersHashMap<E>,
         e: E,
-        bot: crate::bot::Bot,
+        bot: nonebot_rs::bot::Bot,
     ) -> bool
     where
         E: Clone + Send + 'static + std::fmt::Debug + SelfId,
@@ -119,7 +119,7 @@ impl Matchers {
         get_block
     }
 
-    async fn event_recv(mut self, mut event_receiver: crate::EventReceiver) {
+    async fn event_recv(mut self, mut event_receiver: nonebot_rs::EventReceiver) {
         let mut receiver = self.action_sender.subscribe();
         while let Ok(event) = event_receiver.recv().await {
 
@@ -137,8 +137,8 @@ impl Matchers {
 }
 
 #[async_trait]
-impl crate::Plugin for Matchers {
-    fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGetter) {
+impl nonebot_rs::Plugin for Matchers {
+    fn run(&self, event_receiver: nonebot_rs::EventReceiver, bot_getter: nonebot_rs::BotGetter) {
         let mut m = self.clone();
         m.bot_getter = Some(bot_getter.clone());
         tokio::spawn(m.event_recv(event_receiver));
@@ -157,7 +157,7 @@ impl crate::Plugin for Matchers {
     }
 }
 
-fn log_load_matchers(matchers: &crate::Matchers) {
+fn log_load_matchers(matchers: &Matchers) {
     log_matcherb(&matchers.message);
     log_matcherb(&matchers.notice);
     log_matcherb(&matchers.request);

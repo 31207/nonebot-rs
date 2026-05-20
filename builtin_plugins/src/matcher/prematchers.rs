@@ -1,8 +1,8 @@
-use crate::config::BotConfig;
-use crate::event::MessageEvent;
+use nonebot_rs::config::BotConfig;
+use nonebot_rs::event::MessageEvent;
+use nonebot_rs::utils::remove_space;
+use nonebot_rs::message::{Message,At};
 use crate::matcher::PreMatcher;
-use crate::message::{Message,At};
-use crate::utils::remove_space;
 use std::sync::Arc;
 
 /// 判定消息是否提及 bot（私聊，at，昵称）
