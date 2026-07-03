@@ -14,7 +14,7 @@ fn main() {
         .add_message_matcher(msg_event_test::msg_event_test())
         .add_message_matcher(count_msg_types::count_msg_types());
     
-    nb.add_plugin(matchers);
+    // nb.add_plugin(matchers);
     nb.add_plugin(logger::Logger);
     nb.run()
 }
