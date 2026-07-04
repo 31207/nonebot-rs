@@ -144,7 +144,6 @@ pub struct PrivateSender {
     pub user_id: String,
     /// 昵称
     pub nickname: String,
-    pub card: String,
 }
 
 /// 群消息事件
