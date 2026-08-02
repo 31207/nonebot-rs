@@ -76,15 +76,13 @@ impl MessageEvent {
 
     /// 消息事件设置字符串格式消息
     #[allow(dead_code)]
-    pub fn set_raw_message(&mut self, new_raw_message: String) -> MessageEvent {
+    pub fn set_raw_message(&mut self, new_raw_message: String) {
         match self {
             MessageEvent::Private(p) => {
                 p.raw_message = new_raw_message;
-                MessageEvent::Private(p.clone())
             }
             MessageEvent::Group(g) => {
                 g.raw_message = new_raw_message;
-                MessageEvent::Group(g.clone())
             }
         }
     }
@@ -171,7 +169,7 @@ pub struct GroupMessageEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 匿名消息 非匿名消息为空
-    pub anonymous: Option<Anoymous>,
+    pub anonymous: Option<Anonymous>,
     /// Array 消息内容
     pub message: Vec<Message>,
     /// 原生消息内容
@@ -208,7 +206,7 @@ pub struct GroupSender {
 
 /// 消息事件匿名字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Anoymous {
+pub struct Anonymous {
     /// 匿名用户 ID
     #[serde(deserialize_with = "id_deserializer")]
     pub id: String,
@@ -219,55 +217,6 @@ pub struct Anoymous {
 }
 
 /// 通知事件
-// #[derive(Debug, Serialize, Deserialize, Clone)]
-// pub struct NoticeEvent {
-//     /// Event 时间戳
-//     pub time: i64,
-//     /// 收到事件的机器人 QQ 号
-//     #[serde(deserialize_with = "id_deserializer")]
-//     pub self_id: String,
-//     /// 上报类型
-//     pub notice_type: String,
-//     /// 事件子类型
-//     pub sub_type: Option<String>,
-//     /// 群消息群号
-//     #[serde(deserialize_with = "option_id_deserializer")]
-//     #[serde(default)]
-//     pub group_id: Option<String>,
-//     /// 操作者 QQ 号
-//     #[serde(deserialize_with = "option_id_deserializer")]
-//     #[serde(default)]
-//     pub operator_id: Option<String>,
-//     /// 发送者 ID
-//     #[serde(deserialize_with = "id_deserializer")]
-//     pub user_id: String,
-//     /// 文件信息
-//     pub file: Option<File>,
-//     /// 禁言时长，单位秒
-//     pub duration: Option<i64>,
-//     /// 被撤回的消息 ID
-//     pub message_id: Option<i64>,
-//     /// 目标 QQ 号
-//     #[serde(deserialize_with = "option_id_deserializer")]
-//     #[serde(default)]
-//     pub target_id: Option<String>,
-//     /// 群荣耀类型
-//     pub honor_type: Option<String>,
-// }
-
-// /// 通知事件文件字段
-// #[derive(Debug, Serialize, Deserialize, Clone)]
-// pub struct File {
-//     /// 文件 ID
-//     pub id: String,
-//     /// 文件名
-//     pub name: String,
-//     /// 文件大小（字节数）
-//     pub size: i64,
-//     /// 用途未知
-//     pub busid: i64,
-// }
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "notice_type")]
 pub enum NoticeEvent {

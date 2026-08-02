@@ -198,7 +198,7 @@ where
     /// 发送 nbrs 内部设置 Action
     pub async fn set(&self, set: Action) {
         if let Some(bot) = &self.bot {
-            bot.action_sender.send(set).await.unwrap();
+            bot.action_sender.send(set).await.ok();
         }
     }
 
@@ -208,7 +208,7 @@ where
             message_event_matcher: matcher,
         };
         if let Some(action_sender) = &self.action_sender {
-            action_sender.send(action).unwrap();
+            let _ = action_sender.send(action);
         } else {
             tracing::event!(tracing::Level::WARN, "Action Sender not init.")
         }

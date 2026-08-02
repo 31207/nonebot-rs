@@ -58,7 +58,7 @@ pub enum Message {
 
     /// 位置
     #[serde(rename = "location")]
-    Lacation(Lacation),
+    Location(Location),
 
     /// 音乐分享
     #[serde(rename = "music")]
@@ -184,7 +184,7 @@ pub struct Contact {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Lacation {
+pub struct Location {
     /// 纬度
     pub lat: String,
     /// 经度           
@@ -260,108 +260,7 @@ pub struct Mface {
     /// 表情 key
     pub key: String,
 }
-// macro_rules! message_builder {
-//     ($fn_name: ident, $message_type: tt) => {
-//         pub fn $fn_name() -> Message {
-//             Message::$message_type
-//         }
-//     };
-//     ($fn_name: ident, $message_type: tt, $param: ident: $param_ty: ty) => {
-//         pub fn $fn_name($param: $param_ty) -> Message {
-//             Message::$message_type { $param: $param }
-//         }
-//     };
-//     ($fn_name: ident, $message_type: tt, $($param: ident: $param_ty: ty),*) => {
-//         pub fn $fn_name($($param: $param_ty,)*) -> Message {
-//             Message::$message_type { $($param: $param,)* }
-//         }
-//     };
-// }
 
-impl Message {
-    // pub fn text(text: &str) -> Message {
-    //     Message::Text {
-    //         text: text.to_string(),
-    //     }
-    // }
-    // message_builder!(text, Text, text: String);
-    // message_builder!(face, Face, id: String);
-    // message_builder!(
-    //     image,
-    //     Image,
-    //     file: String,
-    //     type_: Option<String>,
-    //     url: Option<String>,
-    //     cache: Option<u8>,
-    //     proxy: Option<u8>,
-    //     timeout: Option<i64>
-    // );
-    // message_builder!(
-    //     record,
-    //     Record,
-    //     file: String,
-    //     magic: Option<u8>,
-    //     url: Option<String>,
-    //     cache: Option<u8>,
-    //     proxy: Option<u8>,
-    //     timeout: Option<i64>
-    // );
-    // message_builder!(
-    //     video,
-    //     Video,
-    //     file: String,
-    //     url: Option<String>,
-    //     cache: Option<u8>,
-    //     proxy: Option<u8>,
-    //     timeout: Option<i64>
-    // );
-    // message_builder!(at, At, qq: String);
-    // message_builder!(rps, Rps);
-    // message_builder!(dice, Dice);
-    // message_builder!(shake, Shake);
-    // message_builder!(poke, Poke, type_: String, id: String, name: Option<String>);
-    // message_builder!(anonymous, Anonymous);
-    // message_builder!(
-    //     share,
-    //     Share,
-    //     url: String,
-    //     title: String,
-    //     content: Option<String>,
-    //     image: Option<String>
-    // );
-    // message_builder!(contact, Contact, type_: String, id: String);
-    // message_builder!(
-    //     location,
-    //     Lacation,
-    //     lat: String,
-    //     lon: String,
-    //     title: Option<String>,
-    //     content: Option<String>
-    // );
-    // message_builder!(
-    //     music,
-    //     Music,
-    //     type_: String,
-    //     id: Option<String>,
-    //     url: Option<String>,
-    //     audio: Option<String>,
-    //     title: Option<String>,
-    //     content: Option<String>,
-    //     image: Option<String>
-    // );
-    // message_builder!(reply, Reply, id: String);
-    // message_builder!(forward, Forward, id: String);
-    // message_builder!(
-    //     node,
-    //     Node,
-    //     id: Option<String>,
-    //     user_id: Option<String>,
-    //     nickname: Option<String>,
-    //     content: Option<Vec<Message>>
-    // );
-    // message_builder!(xml, Xml, data: String);
-    // message_builder!(json, Json, data: String);
-}
 #[derive(Debug)]
 pub enum FileType {
     // url, timeout_seconds
@@ -503,5 +402,63 @@ impl UniMessage {
     }
     pub fn build(self) -> Vec<Message> {
         self.messages
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_uni_message_text() {
+        let msgs = UniMessage::new().text("hello").build();
+        assert_eq!(msgs.len(), 1);
+        match &msgs[0] {
+            Message::Text(t) => assert_eq!(t.text, "hello"),
+            _ => panic!("expected Text message"),
+        }
+    }
+
+    #[test]
+    fn test_uni_message_multiple() {
+        let msgs = UniMessage::new()
+            .text("a")
+            .text("b")
+            .at("123".to_string())
+            .build();
+        assert_eq!(msgs.len(), 3);
+        match &msgs[0] {
+            Message::Text(t) => assert_eq!(t.text, "a"),
+            _ => panic!("expected Text 'a'"),
+        }
+        match &msgs[1] {
+            Message::Text(t) => assert_eq!(t.text, "b"),
+            _ => panic!("expected Text 'b'"),
+        }
+        match &msgs[2] {
+            Message::At(a) => assert_eq!(a.qq, "123"),
+            _ => panic!("expected At '123'"),
+        }
+    }
+
+    #[test]
+    fn test_uni_message_image_base64() {
+        let msgs = UniMessage::new()
+            .image(FileType::Base64("abc".to_string()))
+            .build();
+        assert_eq!(msgs.len(), 1);
+        match &msgs[0] {
+            Message::Image(img) => assert_eq!(img.file, "base64://abc"),
+            _ => panic!("expected Image message"),
+        }
+    }
+
+    #[test]
+    fn test_text_message_serde() {
+        let msg = Message::Text(Text {
+            text: "hello".to_string(),
+        });
+        let json = serde_json::to_string(&msg).unwrap();
+        assert_eq!(json, r#"{"type":"text","data":{"text":"hello"}}"#);
     }
 }

@@ -45,7 +45,7 @@ pub struct Matchers {
     config: HashMap<String, HashMap<String, toml::Value>>,
 }
 
-impl Matchers {
+    impl Matchers {
     async fn handle_events(&mut self, event: Event, bot: &nonebot_rs::bot::Bot) {
         match event {
             Event::Message(e) => {
@@ -74,18 +74,16 @@ impl Matchers {
         }
     }
 
-    /// 接收按类型分发后的 Event 逐级匹配 Matcher
     async fn handle_event<E>(
         &mut self,
-        mut matcherb: MatchersBTreeMap<E>,
+        matcherb: MatchersBTreeMap<E>,
         event: E,
         bot: nonebot_rs::bot::Bot,
     ) where
         E: Clone + Send + 'static + std::fmt::Debug + SelfId,
     {
         event!(Level::TRACE, "handling event {:?}", event);
-        // 根据不同 Event 类型，逐级匹配，判定是否 Block
-        for (_, matcherh) in matcherb.iter_mut() {
+        for (_, matcherh) in matcherb.iter() {
             if self
                 ._handler_event(matcherh, event.clone(), bot.clone())
                 .await
@@ -98,7 +96,7 @@ impl Matchers {
     #[doc(hidden)]
     async fn _handler_event<E>(
         &mut self,
-        matcherh: &mut MatchersHashMap<E>,
+        matcherh: &MatchersHashMap<E>,
         e: E,
         bot: nonebot_rs::bot::Bot,
     ) -> bool
@@ -106,10 +104,10 @@ impl Matchers {
         E: Clone + Send + 'static + std::fmt::Debug + SelfId,
     {
         event!(Level::TRACE, "handling event_ {:?}", e);
-        // 每级 Matcher 匹配，返回是否 block
         let mut get_block = false;
+        let mut temp_to_remove: Vec<String> = Vec::new();
         let config = bot.config.clone();
-        for (name, matcher) in matcherh.iter_mut() {
+        for (name, matcher) in matcherh.iter() {
             let matched = matcher
                 .build(bot.clone())
                 .match_(e.clone(), config.clone(), self)
@@ -121,9 +119,12 @@ impl Matchers {
                 }
                 if matcher.is_temp() {
                     event!(Level::INFO, "Remove matched temp matcher {}", name.blue());
-                    self.remove_matcher(name);
+                    temp_to_remove.push(name.clone());
                 }
             }
+        }
+        for name in temp_to_remove {
+            self.remove_matcher(&name);
         }
         get_block
     }
@@ -137,9 +138,11 @@ impl Matchers {
                 Err(_) => {}
             }
 
-            let bots = self.bot_getter.clone().unwrap().borrow().clone();
-            if let Some(bot) = bots.get(&event.get_self_id()) {
-                self.handle_events(event, bot).await;
+            if let Some(bot_getter) = self.bot_getter.clone() {
+                let bots = bot_getter.borrow().clone();
+                if let Some(bot) = bots.get(&event.get_self_id()) {
+                    self.handle_events(event, bot).await;
+                }
             }
         }
     }

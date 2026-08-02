@@ -87,7 +87,6 @@ pub fn notice_logger(event: &NoticeEvent) {
             );
         }
         NoticeEvent::GroupBan(g) => {
-            println!("{:?}", g);
             match g.sub_type.as_str() {
                 "ban" => {
                     event!(

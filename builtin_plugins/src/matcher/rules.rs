@@ -111,3 +111,57 @@ pub fn is_group_message_event() -> Rule<MessageEvent> {
     };
     Arc::new(is_group_message_event)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nonebot_rs::event::{PrivateMessageEvent, PrivateSender, UserId};
+
+    struct MockUser {
+        user_id: String,
+    }
+
+    impl UserId for MockUser {
+        fn get_user_id(&self) -> String {
+            self.user_id.clone()
+        }
+    }
+
+    #[test]
+    fn test_is_superuser() {
+        let mock = MockUser {
+            user_id: "123".to_string(),
+        };
+        let rule = is_superuser::<MockUser>();
+
+        let mut config = BotConfig::default();
+        config.superusers = vec!["123".to_string()];
+        assert!(rule(&mock, &config));
+
+        config.superusers = vec!["456".to_string()];
+        assert!(!rule(&mock, &config));
+    }
+
+    #[test]
+    fn test_is_private_message_event() {
+        let rule = is_private_message_event();
+        let event = MessageEvent::Private(PrivateMessageEvent {
+            time: 0,
+            self_id: String::new(),
+            sub_type: String::new(),
+            message_id: 0,
+            message_seq: 0,
+            user_id: String::new(),
+            message: vec![],
+            message_format: String::new(),
+            raw_pb: String::new(),
+            raw_message: String::new(),
+            font: 0,
+            sender: PrivateSender {
+                user_id: String::new(),
+                nickname: String::new(),
+            },
+        });
+        assert!(rule(&event, &BotConfig::default()));
+    }
+}

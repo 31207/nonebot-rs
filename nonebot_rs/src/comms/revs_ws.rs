@@ -59,13 +59,13 @@ async fn accept_connection(
                 headers.get("X-Client-Role"),
                 headers.get("User-Agent"),
             ) {
-                let bot_id = bot_id.to_str().unwrap();
+                let bot_id = bot_id.to_str().unwrap_or("");
                 output_bot_id = bot_id.to_owned();
-                let client_role = client_role.to_str().unwrap();
-                let user_agent = user_agent.to_str().unwrap();
+                let client_role = client_role.to_str().unwrap_or("");
+                let user_agent = user_agent.to_str().unwrap_or("");
                 let auth: Option<String> = headers
                     .get("Authorization")
-                    .map(|auth| auth.to_str().unwrap().to_owned());
+                    .map(|auth| auth.to_str().unwrap_or("").to_owned());
 
                 if client_role == "Universal" && access_token.check_auth(bot_id, auth) {
                     event!(
@@ -98,15 +98,14 @@ async fn accept_connection(
     });
 
     // add bot to Nonebot
-    action_sender
+    let _ = action_sender
         .send(crate::Action::AddBot {
             bot_id: output_bot_id.clone(),
             api_sender: sender,
             action_sender: action_sender.clone(),
             api_resp_watcher: api_resp_watcher,
         })
-        .await
-        .unwrap();
+        .await;
 
     // handle WebSocketStream
     handler_web_socket(

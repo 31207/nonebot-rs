@@ -19,7 +19,7 @@ impl Nonebot {
             api_resp_watcher,
         );
         self.bots.insert(bot_id.to_string(), bot.clone());
-        self.bot_sender.send(self.bots.clone()).unwrap();
+        let _ = self.bot_sender.send(self.bots.clone());
         bot
     }
 
@@ -27,16 +27,18 @@ impl Nonebot {
     pub fn remove_bot(&mut self, bot_id: String) -> Option<Bot> {
         let bot_id = bot_id.to_string();
         let bot = self.bots.remove(&bot_id);
-        self.bot_sender.send(self.bots.clone()).unwrap();
+        let _ = self.bot_sender.send(self.bots.clone());
         bot
     }
 
     /// 新建一个 Matchers 为空的 Nonebot 结构体
     pub fn new() -> Self {
         let nb_config = crate::config::NbConfig::load();
-        let (event_sender, _) = broadcast::channel(1024); // need largo cache when reconnect
+        let capacity = nb_config.global.event_channel_capacity.unwrap_or(1024);
+        let (event_sender, _) = broadcast::channel(capacity.max(1));
         let (action_sender, action_receiver) = tokio::sync::mpsc::channel(32);
         let (bot_sender, bot_getter) = watch::channel(HashMap::new());
+        let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
         Nonebot {
             bots: HashMap::new(),
             config: nb_config,
@@ -45,6 +47,8 @@ impl Nonebot {
             action_receiver,
             bot_sender,
             bot_getter,
+            shutdown_tx,
+            shutdown_rx,
             plugins: HashMap::new(),
         }
     }
@@ -94,9 +98,27 @@ impl Nonebot {
 
     /// Nonebot EventChannel receive handle
     async fn recv(mut self) {
-        while let Some(action) = self.action_receiver.recv().await {
-            self.handle_action(action)
+        loop {
+            tokio::select! {
+                Some(action) = self.action_receiver.recv() => {
+                    self.handle_action(action);
+                }
+                _ = self.shutdown_rx.recv() => {
+                    tracing::event!(tracing::Level::INFO, "Nonebot shutting down...");
+                    break;
+                }
+            }
         }
+    }
+
+    /// 发送关闭信号
+    pub fn shutdown(&self) {
+        let _ = self.shutdown_tx.send(());
+    }
+
+    /// Shutdown signal receiver (for internal use)
+    pub fn shutdown_subscribe(&self) -> crate::ShutdownReceiver {
+        self.shutdown_tx.subscribe()
     }
 
     /// 运行 Nonebot 实例

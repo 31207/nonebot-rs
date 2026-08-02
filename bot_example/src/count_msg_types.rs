@@ -20,30 +20,30 @@ impl Handler<MessageEvent> for CountMsgType {
                 Message::Image(_) => image_count += 1,
                 Message::At(_) => at_count += 1,
                 Message::Reply(r) => {
-                    let id = r.id.parse::<i32>().unwrap();
-                    let replied_msg = matcher.get_msg(id).await;
-                    println!("Replied msg: {:?}", replied_msg);
-                    if let Some(replied_msg) = replied_msg {
-                        match replied_msg {
-                            nonebot_rs::api_resp::RespMessage::Group(g) => {
-                                let replied_msg_content = g.message;
-                                for seg in replied_msg_content.iter() {
-                                    match seg {
-                                        Message::Text(_) => text_count += 1,
-                                        Message::Image(_) => image_count += 1,
-                                        Message::At(_) => at_count += 1,
-                                        _ => other_count += 1,
+                    if let Ok(id) = r.id.parse::<i32>() {
+                        let replied_msg = matcher.get_msg(id).await;
+                        if let Some(replied_msg) = replied_msg {
+                            match replied_msg {
+                                nonebot_rs::api_resp::RespMessage::Group(g) => {
+                                    let replied_msg_content = g.message;
+                                    for seg in replied_msg_content.iter() {
+                                        match seg {
+                                            Message::Text(_) => text_count += 1,
+                                            Message::Image(_) => image_count += 1,
+                                            Message::At(_) => at_count += 1,
+                                            _ => other_count += 1,
+                                        }
                                     }
                                 }
-                            }
-                            nonebot_rs::api_resp::RespMessage::Private(p) => {
-                                let replied_msg_content = p.message;
-                                for seg in replied_msg_content.iter() {
-                                    match seg {
-                                        Message::Text(_) => text_count += 1,
-                                        Message::Image(_) => image_count += 1,
-                                        Message::At(_) => at_count += 1,
-                                        _ => other_count += 1,
+                                nonebot_rs::api_resp::RespMessage::Private(p) => {
+                                    let replied_msg_content = p.message;
+                                    for seg in replied_msg_content.iter() {
+                                        match seg {
+                                            Message::Text(_) => text_count += 1,
+                                            Message::Image(_) => image_count += 1,
+                                            Message::At(_) => at_count += 1,
+                                            _ => other_count += 1,
+                                        }
                                     }
                                 }
                             }

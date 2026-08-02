@@ -5,7 +5,7 @@ description = "A Onebot SDK in Rust"
 homepage = "https://github.com/abrahum/nonebot-rs"
 authors = ["Abrahum Link<307887491@qq.com>"]
 version = "0.3.0"
-edition = "2018"
+edition = "2021"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -21,7 +21,6 @@ http = "0.2.4"
 chrono = "0.4.19"
 toml = "1.1.2"
 async-trait = "0.1.51"
-async-recursion = "0.3.2"
 colored = "2.0.0"
 config = "0.11.0"
 tokio-tungstenite = "0.15"
@@ -36,7 +35,7 @@ version = "0.1"
 features = ["std"]
 
 [dependencies.tokio]
-version = "1.10.0"
+version = "1"
 features = ["macros", "rt-multi-thread", "time", "sync"]
 
 [dependencies.futures-util]

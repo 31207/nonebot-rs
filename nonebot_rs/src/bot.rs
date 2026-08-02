@@ -53,7 +53,7 @@ impl Bot {
                 },
             )))
             .await
-            .unwrap();
+            .ok();
         event!(
             Level::INFO,
             "Bot [{}] Send a message to Group ({})",
@@ -73,7 +73,7 @@ impl Bot {
                 },
             )))
             .await
-            .unwrap();
+            .ok();
         event!(
             Level::INFO,
             "Bot [{}] Send a message to Friend ({})",
@@ -113,7 +113,7 @@ impl Bot {
         self.api_sender
             .send(ApiChannelItem::Api(api.clone()))
             .await
-            .unwrap();
+            .ok();
         event!(
             Level::INFO,
             "Bot [{}] Calling Api {:?}",
@@ -128,27 +128,30 @@ impl Bot {
         self.api_sender
             .send(ApiChannelItem::Api(api.clone()))
             .await
-            .unwrap();
+            .ok()?;
         event!(
             Level::INFO,
             "Bot [{}] Calling Api {:?}",
             self.config.bot_id.red(),
             api
         );
-        let time = utils::timestamp();
         let mut watcher = self.api_resp_watcher.clone();
-        while let Ok(_) = watcher.changed().await {
-            let resp = self.api_resp_watcher.borrow().clone();
-            if resp.echo == echo {
-                //println!("Api Resp Watcher Got Resp!");
-                return Some(resp);
-            }
-            if utils::timestamp() > time + 30 {
-                //println!("Api Resp Watcher Timeout!");
-                return None;
+        let deadline = utils::timestamp() + 30;
+        loop {
+            let remaining = (deadline - utils::timestamp()).max(0) as u64;
+            match tokio::time::timeout(
+                std::time::Duration::from_secs(remaining),
+                watcher.changed(),
+            )
+            .await
+            {
+                Ok(Ok(())) => {
+                    if watcher.borrow().echo == echo {
+                        return Some(watcher.borrow().clone());
+                    }
+                }
+                _ => return None,
             }
         }
-        //println!("Api Resp Watcher Closed!");
-        None
     }
 }

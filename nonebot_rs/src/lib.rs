@@ -64,6 +64,10 @@ pub type ActionReceiver = mpsc::Receiver<Action>;
 pub type BotSender = watch::Sender<HashMap<String, Bot>>;
 /// 接收广播的所有可用 Bot
 pub type BotGetter = watch::Receiver<HashMap<String, Bot>>;
+/// Shutdown signal sender
+pub type ShutdownSender = broadcast::Sender<()>;
+/// Shutdown signal receiver
+pub type ShutdownReceiver = broadcast::Receiver<()>;
 /// nbrs 本体
 ///
 /// 用于注册 `Matcher`，暂存配置项，以及启动实例
@@ -82,6 +86,10 @@ pub struct Nonebot {
     pub bot_sender: BotSender,
     /// Bot Getter
     pub bot_getter: BotGetter,
+    /// Shutdown signal sender
+    shutdown_tx: ShutdownSender,
+    /// Shutdown signal receiver
+    shutdown_rx: ShutdownReceiver,
     /// event handler
     plugins: HashMap<String, Box<dyn Plugin + Send + Sync>>,
 }

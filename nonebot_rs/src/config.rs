@@ -48,6 +48,9 @@ pub struct GlobalConfig {
     pub debug: bool,
     /// Trace 模式
     pub trace: Option<bool>,
+    /// 事件通道容量，默认 1024
+    #[serde(default)]
+    pub event_channel_capacity: Option<usize>,
     /// 全局管理员账号设置
     pub superusers: Vec<String>,
     /// 全局昵称设置
@@ -98,6 +101,7 @@ impl Default for NbConfig {
             global: GlobalConfig {
                 debug: true,
                 trace: None,
+                event_channel_capacity: None,
                 superusers: vec![],
                 nicknames: vec![],
                 command_starts: vec!["/".to_string()],
@@ -121,13 +125,13 @@ impl NbConfig {
         let config_pathbuf = std::path::PathBuf::from(&CONFIG_PATH);
         if !config_pathbuf.exists() {
             config = NbConfig::default();
-            let config_string = toml::to_string(&config).unwrap();
-            std::fs::write(&config_pathbuf, &config_string).unwrap();
+            let config_string = toml::to_string(&config).expect("Failed to serialize default config");
+            std::fs::write(&config_pathbuf, &config_string).expect("Failed to write config file");
             println!("{}", "未发现配置文件，已新建配置文件。".green())
         } else {
             let mut _config = Config::default();
-            _config.merge(config::File::with_name(CONFIG_PATH)).unwrap();
-            config = _config.clone().try_into().unwrap();
+            _config.merge(config::File::with_name(CONFIG_PATH)).expect("Failed to merge config");
+            config = _config.clone().try_into().expect("Failed to parse config");
             config.config = _config;
         }
         config
@@ -263,5 +267,55 @@ impl AccessToken {
         }
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_nb_config() {
+        let config = NbConfig::default();
+        assert_eq!(config.global.debug, true);
+        assert_eq!(config.global.trace, None);
+        assert!(config.global.superusers.is_empty());
+        assert_eq!(config.global.command_starts, vec!["/".to_string()]);
+        assert!(config.ws_server.is_some());
+    }
+
+    #[test]
+    fn test_gen_bot_config_merges_global() {
+        let mut nb = NbConfig::default();
+        nb.global.superusers = vec!["10001".to_string()];
+        nb.global.nicknames = vec!["bot".to_string()];
+        nb.global.command_starts = vec!["/".to_string(), "#".to_string()];
+
+        let bot_config = nb.gen_bot_config("20001");
+        assert_eq!(bot_config.bot_id, "20001");
+        assert_eq!(bot_config.superusers, vec!["10001".to_string()]);
+        assert_eq!(bot_config.nicknames, vec!["bot".to_string()]);
+        assert_eq!(bot_config.command_starts, vec!["/".to_string(), "#".to_string()]);
+    }
+
+    #[test]
+    fn test_access_token_check_empty() {
+        let token = AccessToken {
+            global: String::new(),
+            bots: HashMap::new(),
+        };
+        assert!(token.check_auth("any_bot", None));
+        assert!(token.check_auth("any_bot", Some("anything".to_string())));
+    }
+
+    #[test]
+    fn test_access_token_check_bearer() {
+        let token = AccessToken {
+            global: "my_token".to_string(),
+            bots: HashMap::new(),
+        };
+        assert!(token.check_auth("any_bot", Some("Bearer my_token".to_string())));
+        assert!(token.check_auth("any_bot", Some("Token my_token".to_string())));
+        assert!(!token.check_auth("any_bot", Some("wrong".to_string())));
     }
 }

@@ -196,12 +196,6 @@ impl Api {
         CleanCache
     );
 
-    // pub fn get_group_list() -> Api {
-    //     Api::GetGroupList {
-    //         params: None,
-    //         echo: format!("{},{}", "GetGroupList", crate::utils::timestamp()),
-    //     }
-    // }
     no_params_builder!(
         (get_login_info, GetLoginInfo),
         (get_friend_list, GetFriendList),
@@ -314,7 +308,7 @@ pub struct SetGroupBan {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAnonymousBan {
     pub group_id: String,
-    pub anonymous: crate::event::Anoymous,
+    pub anonymous: crate::event::Anonymous,
     pub flag: String,
     pub duration: i64,
 }

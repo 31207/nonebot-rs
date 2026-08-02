@@ -315,7 +315,7 @@ impl Scheduler {
     /// 适用于需要使用 `Job` 高级特性的场景。
     /// 对于大多数场景，推荐使用更简洁的 [`add_cron_job`](Self::add_cron_job)。
     pub fn add_job(&mut self, job: Job) {
-        self.scheduler.add(job).unwrap();
+        self.scheduler.add(job).expect("Failed to add job to scheduler");
     }
 
     /// 根据 Cron 表达式和回调函数创建一个 Job 并添加到调度器
@@ -360,8 +360,8 @@ impl Scheduler {
         let job = Job::new_cron_job(cron, move |_uuid, _lock| {
             action();
         })
-        .unwrap();
-        self.scheduler.add(job).unwrap();
+        .expect("Failed to create cron job");
+        self.scheduler.add(job).expect("Failed to add cron job to scheduler");
     }
 
     /// 访问已加载的 Job 配置映射

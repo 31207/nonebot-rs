@@ -45,36 +45,44 @@ impl Matcher<MessageEvent> {
         impl Handler<MessageEvent> for Temp {
             crate::on_message!(MessageEvent);
             async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-                matcher
-                    .bot
-                    .clone()
-                    .unwrap()
-                    .api_sender
-                    .send(ApiChannelItem::MessageEvent(event))
-                    .await
-                    .unwrap();
+                if let Some(bot) = matcher.bot.clone() {
+                    bot.api_sender
+                        .send(ApiChannelItem::MessageEvent(event))
+                        .await
+                        .ok();
+                }
             }
 
             // timeout 后调用，通知接受端 Timeout
             fn timeout_drop(&self, matcher: &Matcher<MessageEvent>) {
-                let sender = matcher.bot.clone().unwrap().api_sender;
-                tokio::spawn(async move { sender.send(ApiChannelItem::TimeOut).await.unwrap() });
+                if let Some(bot) = &matcher.bot {
+                    let sender = bot.api_sender.clone();
+                    tokio::spawn(async move { sender.send(ApiChannelItem::TimeOut).await.ok(); });
+                }
             }
         }
 
         // 搭建临时通道接受 MessageEvent
         let (sender, mut receiver) = tokio::sync::mpsc::channel::<ApiChannelItem>(4);
-        let event = self.event.clone().unwrap();
+        let event = if let Some(event) = self.event.clone() {
+            event
+        } else {
+            return None;
+        };
         // 根据提供的 event Handler 构建仅指向当先通话的 Temp Matcher
         let mut m = build_temp_message_event_matcher(&event, Temp);
         // 使用临时通道构建专用 Bot
-        let bot = nonebot_rs::bot::Bot::new(
-            "Temp".to_string(),
-            nonebot_rs::config::BotConfig::default(),
-            sender,
-            self.bot.clone().unwrap().action_sender.clone(),
-            self.bot.clone().unwrap().api_resp_watcher.clone(),
-        );
+        let bot = if let Some(bot) = self.bot.clone() {
+            nonebot_rs::bot::Bot::new(
+                "Temp".to_string(),
+                nonebot_rs::config::BotConfig::default(),
+                sender,
+                bot.action_sender.clone(),
+                bot.api_resp_watcher.clone(),
+            )
+        } else {
+            return None;
+        };
         // 绑定专用 Bot
         m.bot = Some(bot);
         self.set_message_matcher(m).await;

@@ -9,7 +9,7 @@ macro_rules! onebot_apis {
         api_no_resp!(send_like, SendLike, user_id: String, times: u8);
         api_no_resp!(set_group_kick, SetGroupKick, group_id: String, user_id: String, reject_add_request: bool);
         api_no_resp!(set_group_ban, SetGroupBan, group_id: String, user_id: String, duration: i64);
-        api_no_resp!(set_group_anonymous_ban, SetGroupAnonymousBan, group_id: String, anonymous: $crate::event::Anoymous, flag: String, duration: i64);
+        api_no_resp!(set_group_anonymous_ban, SetGroupAnonymousBan, group_id: String, anonymous: $crate::event::Anonymous, flag: String, duration: i64);
         api_no_resp!(set_group_whole_ban, SetGroupWholeBan, group_id: String, enable: bool);
         api_no_resp!(set_group_admin, SetGroupAdmin, group_id: String, user_id: String, enable: bool);
         api_no_resp!(set_group_anonymous, SetGroupAnonymous, group_id: String, enable: bool);

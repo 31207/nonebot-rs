@@ -39,11 +39,11 @@ impl crate::Nonebot {
                     action_sender,
                     api_resp_watcher.clone(),
                 );
-                self.event_sender
+                let _ = self
+                    .event_sender
                     .send(crate::event::Event::Nonebot(
                         crate::event::NbEvent::BotConnect { bot },
-                    ))
-                    .unwrap();
+                    ));
                 event!(Level::DEBUG, "Add Bot [{}]", bot_id);
             }
             Action::RemoveBot { bot_id } => {
@@ -51,11 +51,11 @@ impl crate::Nonebot {
                 match bot {
                     Some(bot) => {
                         event!(Level::DEBUG, "Remove Bot [{}]", bot.bot_id.bright_red());
-                        self.event_sender
+                        let _ = self
+                            .event_sender
                             .send(crate::event::Event::Nonebot(
                                 crate::event::NbEvent::BotDisconnect { bot },
-                            ))
-                            .unwrap();
+                            ));
                     }
                     None => {
                         event!(
@@ -67,7 +67,7 @@ impl crate::Nonebot {
                 }
             }
             Action::ChangeBotConfig { bot_id, bot_config } => {
-                let bot = self.bots.get_mut(&bot_id).unwrap();
+                let bot = self.bots.get_mut(&bot_id).expect("Bot not found");
                 bot.config = bot_config;
             }
         }

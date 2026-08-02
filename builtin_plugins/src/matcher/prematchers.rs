@@ -61,3 +61,114 @@ fn command_start_(event: &mut MessageEvent, config: BotConfig) -> bool {
 pub fn command_start() -> Arc<PreMatcher<MessageEvent>> {
     Arc::new(command_start_)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nonebot_rs::config::BotConfig;
+    use nonebot_rs::event::{GroupMessageEvent, GroupSender, MessageEvent, PrivateMessageEvent, PrivateSender};
+    use nonebot_rs::message::{At, Message};
+
+    #[test]
+    fn test_to_me_private() {
+        let event = MessageEvent::Private(PrivateMessageEvent {
+            time: 0,
+            self_id: "100".to_string(),
+            sub_type: "".to_string(),
+            message_id: 1,
+            message_seq: 1,
+            user_id: "200".to_string(),
+            message: vec![],
+            message_format: "".to_string(),
+            raw_pb: "".to_string(),
+            raw_message: "hello".to_string(),
+            font: 0,
+            sender: PrivateSender {
+                user_id: "200".to_string(),
+                nickname: "tester".to_string(),
+            },
+        });
+
+        let mut event = event;
+        let config = BotConfig::default();
+        let matcher = to_me();
+        assert!(matcher(&mut event, config));
+    }
+
+    #[test]
+    fn test_to_me_group_at_bot() {
+        let event = MessageEvent::Group(GroupMessageEvent {
+            time: 0,
+            self_id: "100".to_string(),
+            sub_type: "".to_string(),
+            message_id: 1,
+            message_seq: 1,
+            message_format: "".to_string(),
+            raw_pb: "".to_string(),
+            group_id: "300".to_string(),
+            group_name: "TestGroup".to_string(),
+            user_id: "200".to_string(),
+            anonymous: None,
+            message: vec![Message::At(At { qq: "100".to_string() })],
+            raw_message: "[CQ:at,qq=100]".to_string(),
+            font: 0,
+            sender: GroupSender {
+                user_id: "200".to_string(),
+                nickname: "tester".to_string(),
+                card: "".to_string(),
+                role: "member".to_string(),
+                title: "".to_string(),
+            },
+        });
+
+        let mut event = event;
+        let config = BotConfig::default();
+        let matcher = to_me();
+        assert!(matcher(&mut event, config));
+
+        if let MessageEvent::Group(g) = &event {
+            assert!(!g.raw_message.contains("[CQ:at,qq=100]"));
+        } else {
+            panic!("expected Group event");
+        }
+    }
+
+    #[test]
+    fn test_command_start_matches() {
+        let event = MessageEvent::Group(GroupMessageEvent {
+            time: 0,
+            self_id: "100".to_string(),
+            sub_type: "".to_string(),
+            message_id: 1,
+            message_seq: 1,
+            message_format: "".to_string(),
+            raw_pb: "".to_string(),
+            group_id: "300".to_string(),
+            group_name: "TestGroup".to_string(),
+            user_id: "200".to_string(),
+            anonymous: None,
+            message: vec![],
+            raw_message: "/help".to_string(),
+            font: 0,
+            sender: GroupSender {
+                user_id: "200".to_string(),
+                nickname: "tester".to_string(),
+                card: "".to_string(),
+                role: "member".to_string(),
+                title: "".to_string(),
+            },
+        });
+
+        let mut event = event;
+        let mut config = BotConfig::default();
+        config.command_starts = vec!["/".to_string()];
+        let matcher = command_start();
+        assert!(matcher(&mut event, config.clone()));
+
+        if let MessageEvent::Group(g) = &event {
+            assert_eq!(g.raw_message, "help");
+        } else {
+            panic!("expected Group event");
+        }
+    }
+}

@@ -15,7 +15,7 @@ macro_rules! api_resp {
     ($fn_name:ident, $struct_name:tt, $resp_data:tt, $resp_data_type:ty,) => {
         pub async fn $fn_name(&self) -> Option<$resp_data_type> {
             let resp = self.call_api_resp(api::Api::$fn_name()).await;
-            if let RespData::$resp_data(d) = resp.unwrap().data {
+            if let RespData::$resp_data(d) = resp?.data {
                 Some(d)
             } else {
                 None
@@ -29,7 +29,7 @@ macro_rules! api_resp {
                     $($param: $param,)*
                 }))
                 .await;
-            if let RespData::$resp_data(d) = resp.unwrap().data {
+            if let RespData::$resp_data(d) = resp?.data {
                 Some(d)
             } else {
                 None
