@@ -1,6 +1,6 @@
-use nonebot_rs::event::{Event, MessageEvent, MetaEvent, NoticeEvent};
 use async_trait::async_trait;
 use colored::*;
+use nonebot_rs::event::{Event, MessageEvent, MetaEvent, NoticeEvent};
 use tracing::{event, Level};
 
 /// Message Event Logger
@@ -86,55 +86,53 @@ pub fn notice_logger(event: &NoticeEvent) {
                 g.user_id.green(),
             );
         }
-        NoticeEvent::GroupBan(g) => {
-            match g.sub_type.as_str() {
-                "ban" => {
+        NoticeEvent::GroupBan(g) => match g.sub_type.as_str() {
+            "ban" => {
+                event!(
+                    Level::INFO,
+                    "{} [{}] -> {}被{}禁言{}秒",
+                    g.group_id.magenta(),
+                    g.self_id.red(),
+                    g.user_id.green(),
+                    g.operator_id.yellow(),
+                    g.duration.to_string().red(),
+                );
+            }
+            _ => match g.duration {
+                0 if g.user_id == "0" => {
                     event!(
                         Level::INFO,
-                        "{} [{}] -> {}被{}禁言{}秒",
+                        "{} [{}] -> 群聊{}被{}解除全员禁言",
+                        g.group_id.magenta(),
+                        g.self_id.red(),
+                        g.group_id.green(),
+                        g.operator_id.yellow(),
+                    );
+                    return;
+                }
+                -1 => {
+                    event!(
+                        Level::INFO,
+                        "{} [{}] -> 群聊{}被{}设置全员禁言",
+                        g.group_id.magenta(),
+                        g.self_id.red(),
+                        g.group_id.green(),
+                        g.operator_id.yellow(),
+                    );
+                    return;
+                }
+                _ => {
+                    event!(
+                        Level::INFO,
+                        "{} [{}] -> {}被{}解除禁言",
                         g.group_id.magenta(),
                         g.self_id.red(),
                         g.user_id.green(),
                         g.operator_id.yellow(),
-                        g.duration.to_string().red(),
                     );
                 }
-                _ => match g.duration {
-                    0 if g.user_id == "0" => {
-                        event!(
-                            Level::INFO,
-                            "{} [{}] -> 群聊{}被{}解除全员禁言",
-                            g.group_id.magenta(),
-                            g.self_id.red(),
-                            g.group_id.green(),
-                            g.operator_id.yellow(),
-                        );
-                        return;
-                    }
-                    -1 => {
-                        event!(
-                            Level::INFO,
-                            "{} [{}] -> 群聊{}被{}设置全员禁言",
-                            g.group_id.magenta(),
-                            g.self_id.red(),
-                            g.group_id.green(),
-                            g.operator_id.yellow(),
-                        );
-                        return;
-                    }
-                    _ => {
-                        event!(
-                            Level::INFO,
-                            "{} [{}] -> {}被{}解除禁言",
-                            g.group_id.magenta(),
-                            g.self_id.red(),
-                            g.user_id.green(),
-                            g.operator_id.yellow(),
-                        );
-                    }
-                },
-            }
-        }
+            },
+        },
         NoticeEvent::GroupIncrease(g) => {
             event!(
                 Level::INFO,
@@ -184,20 +182,27 @@ pub fn notice_logger(event: &NoticeEvent) {
 }
 
 #[derive(Debug, Clone)]
-pub struct Logger;
+pub struct Logger {
+    message_logger_enable: bool,
+    notice_logger_enable: bool,
+    meta_logger_enable: bool,
+}
 
 impl Logger {
-
     pub fn new() -> Self {
-        Logger
+        Logger {
+            message_logger_enable: true,
+            notice_logger_enable: true,
+            meta_logger_enable: true,
+        }
     }
 
     async fn event_recv(self, mut event_receiver: nonebot_rs::EventReceiver) {
         while let Ok(event) = event_receiver.recv().await {
             match &event {
-                Event::Message(m) => message_logger(m),
-                Event::Notice(m) => notice_logger(m),
-                Event::Meta(m) => meta_logger(m),
+                Event::Message(m) if self.message_logger_enable => message_logger(m),
+                Event::Notice(m) if self.notice_logger_enable => notice_logger(m),
+                Event::Meta(m) if self.meta_logger_enable => meta_logger(m),
                 _ => {}
             }
         }
@@ -215,5 +220,9 @@ impl nonebot_rs::Plugin for Logger {
         "Logger"
     }
 
-    async fn load_config(&mut self, _: toml::Value) {}
+    async fn load_config(&mut self, config: toml::Value) {
+        self.message_logger_enable = config["message_logger_enable"].as_bool().unwrap_or(true);
+        self.notice_logger_enable = config["notice_logger_enable"].as_bool().unwrap_or(true);
+        self.meta_logger_enable = config["meta_logger_enable"].as_bool().unwrap_or(true);
+    }
 }
