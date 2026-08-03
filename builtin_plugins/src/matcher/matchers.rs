@@ -1,7 +1,7 @@
-use nonebot_rs::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
 use crate::matcher::Matcher;
 use async_trait::async_trait;
 use colored::*;
+use nonebot_rs::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
 use std::collections::{BTreeMap, HashMap};
 use tokio::sync::broadcast;
 use tracing::{event, Level};
@@ -45,7 +45,7 @@ pub struct Matchers {
     config: HashMap<String, HashMap<String, toml::Value>>,
 }
 
-    impl Matchers {
+impl Matchers {
     async fn handle_events(&mut self, event: Event, bot: &nonebot_rs::bot::Bot) {
         match event {
             Event::Message(e) => {
@@ -113,7 +113,9 @@ pub struct Matchers {
                 .match_(e.clone(), config.clone(), self)
                 .await;
             if matched {
-                event!(Level::INFO, "Matched {}", name.blue());
+                if matcher.show_matched_log {
+                    event!(Level::INFO, "Matched {}", name.blue());
+                }
                 if matcher.is_block() {
                     get_block = true;
                 }
@@ -132,7 +134,6 @@ pub struct Matchers {
     async fn event_recv(mut self, mut event_receiver: nonebot_rs::EventReceiver) {
         let mut receiver = self.action_sender.subscribe();
         while let Ok(event) = event_receiver.recv().await {
-
             match receiver.try_recv() {
                 Ok(action) => self.handle_action(action),
                 Err(_) => {}

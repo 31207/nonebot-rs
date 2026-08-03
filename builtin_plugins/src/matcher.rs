@@ -1,23 +1,22 @@
+use async_trait::async_trait;
 use nonebot_rs::config::BotConfig;
 use nonebot_rs::event::{MessageEvent, SelfId};
 use nonebot_rs::utils::timestamp;
 use nonebot_rs::Action;
-use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 #[doc(hidden)]
 pub mod api;
 #[doc(hidden)]
-pub mod matchers;
-#[doc(hidden)]
 pub mod event_matcher;
+pub mod macros;
+#[doc(hidden)]
+pub mod matchers;
 /// Preludo for Matcher
 pub mod prelude;
-pub mod rules;
 pub mod prematchers;
-pub mod macros;
-
+pub mod rules;
 
 /// rule 函数类型
 pub type Rule<E> = Arc<dyn Fn(&E, &BotConfig) -> bool + Send + Sync>;
@@ -54,6 +53,8 @@ where
     pub temp: bool,
     /// 过期时间戳
     pub timeout: Option<i64>,
+    /// 匹配时是否提示
+    pub show_matched_log: bool,
 
     #[doc(hidden)]
     event: Option<E>,
@@ -121,7 +122,7 @@ where
             disable: false,
             temp: false,
             timeout: None,
-
+            show_matched_log: true,
             event: None,
         }
     }
@@ -300,6 +301,17 @@ where
     /// 设置 Matcher 超时时限
     pub fn set_timeout(&mut self, timeout: i64) -> Matcher<E> {
         self.timeout = Some(timeout);
+        self.clone()
+    }
+
+    /// 不显示匹配时的提示
+    pub fn disable_matched_log(&mut self) -> Matcher<E> {
+        self.show_matched_log = false;
+        self.clone()
+    }
+    /// 显示匹配时的提示
+    pub fn enable_matched_log(&mut self) -> Matcher<E> {
+        self.show_matched_log = true;
         self.clone()
     }
 }
