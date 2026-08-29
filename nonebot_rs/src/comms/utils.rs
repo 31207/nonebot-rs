@@ -82,7 +82,8 @@ async fn stream_recv(
         use crate::event::RecvItem;
         if let Ok(msg) = msg {
             // println!("{}",msg.to_text().unwrap());
-            let data: serde_json::Result<RecvItem> = serde_json::from_str(msg.to_text().unwrap_or(""));
+            let data: serde_json::Result<RecvItem> =
+                serde_json::from_str(msg.to_text().unwrap_or(""));
             match data {
                 Ok(data) => match data {
                     RecvItem::Event(event) => send_event(&event_sender, event).await,
@@ -97,6 +98,9 @@ async fn stream_recv(
                         msg.to_text().unwrap_or(""),
                         e
                     );
+                    if crate::config::debug_enabled() {
+                        std::fs::write("error_msg.txt", msg.to_text().unwrap_or("")).ok();
+                    }
                     //std::process::exit(101);
                 }
             }

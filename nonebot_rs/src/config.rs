@@ -2,6 +2,15 @@ use crate::log::{colored::*, event, Level};
 use config::Config;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// 全局 Debug 开关（由 NbConfig::load 设置）
+static DEBUG: AtomicBool = AtomicBool::new(false);
+
+/// 获取当前 Debug 开关状态
+pub fn debug_enabled() -> bool {
+    DEBUG.load(Ordering::Relaxed)
+}
 
 /// nbrs 配置文件名
 pub static CONFIG_PATH: &str = "Nonebotrs.toml";
@@ -134,6 +143,7 @@ impl NbConfig {
             config = _config.clone().try_into().expect("Failed to parse config");
             config.config = _config;
         }
+        DEBUG.store(config.global.debug, Ordering::Relaxed);
         config
     }
 
