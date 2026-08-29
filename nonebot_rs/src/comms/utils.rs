@@ -99,7 +99,13 @@ async fn stream_recv(
                         e
                     );
                     if crate::config::debug_enabled() {
-                        std::fs::write("error_msg.txt", msg.to_text().unwrap_or("")).ok();
+                        use std::io::Write;
+                        std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("error_msg.txt")
+                            .and_then(|mut f| writeln!(f, "{}", msg.to_text().unwrap_or("")))
+                            .ok();
                     }
                     //std::process::exit(101);
                 }
