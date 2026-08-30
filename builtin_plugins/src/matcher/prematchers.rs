@@ -21,7 +21,7 @@ pub fn to_me() -> Arc<PreMatcher<MessageEvent>> {
                 }
                 for message in &g.message {
                     match message {
-                        Message::At( At{ qq: qq_id }) => {
+                        Message::At(At { qq: qq_id, .. }) => {
                             if qq_id == &bot_id {
                                 g.raw_message = remove_space(
                                     &raw_message.replace(&format!("[CQ:at,qq={}]", g.self_id), ""),
@@ -109,7 +109,10 @@ mod tests {
             group_name: "TestGroup".to_string(),
             user_id: "200".to_string(),
             anonymous: None,
-            message: vec![Message::At(At { qq: "100".to_string() })],
+            message: vec![Message::At(At {
+                qq: "100".to_string(),
+                name: None,
+            })],
             raw_message: "[CQ:at,qq=100]".to_string(),
             font: 0,
             sender: GroupSender {

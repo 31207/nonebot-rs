@@ -240,6 +240,12 @@ pub enum NoticeEvent {
 
     #[serde(rename = "group_msg_emoji_like")]
     GroupMessageEmojiLike(GroupMessageEmojiLikeNoticeEvent),
+
+    #[serde(rename = "group_card")]
+    GroupCard(GroupCardNoticeEvent),
+
+    #[serde(rename = "group_upload")]
+    GroupUpload(GroupUploadNoticeEvent),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -377,6 +383,54 @@ pub struct GroupMessageEmojiLikeNoticeEvent {
     /// message_id
     pub message_id: i64,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCardNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 新群名片
+    pub card_new: String,
+    /// 旧群名片
+    pub card_old: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupUploadNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 上传文件信息
+    pub file: GroupUploadFile,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupUploadFile {
+    /// 文件 ID
+    pub id: String,
+    /// 文件名
+    pub name: String,
+    /// 文件大小
+    pub size: i64,
+    /// busid
+    pub busid: i64,
+}
 /// 请求事件
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RequestEvent {
@@ -484,6 +538,190 @@ fn de_group_mface_event() {
     }
 }
 
+#[test]
+fn de_file_message_event() {
+    let json = r#"{
+        "self_id": 1692038362,
+        "user_id": 3966708213,
+        "time": 1787989388,
+        "message_id": 909916862,
+        "message_seq": 5319671,
+        "message_type": "group",
+        "sender": {
+            "user_id": 3966708213,
+            "nickname": "Jeryz",
+            "card": "[有人@我]Jeryz",
+            "role": "member",
+            "level": "24",
+            "title": "我好可爱！"
+        },
+        "raw_message": "[CQ:file,file=QQ20260829-154116.mp4,url=,file_id=/ad295eef-f08f-4ec1-8c1f-bd158e513c17,path=,file_size=16717747]",
+        "font": 14,
+        "sub_type": "normal",
+        "message": [
+            {
+                "type": "file",
+                "data": {
+                    "file": "QQ20260829-154116.mp4",
+                    "url": "",
+                    "file_id": "/ad295eef-f08f-4ec1-8c1f-bd158e513c17",
+                    "path": "",
+                    "file_size": "16717747"
+                }
+            }
+        ],
+        "message_format": "array",
+        "post_type": "message",
+        "raw_pb": "",
+        "group_id": 253461266,
+        "group_name": "OSU!Mania-笨笨萌新交流群"
+    }"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Message(MessageEvent::Group(g)) => {
+            assert_eq!(g.group_id, "253461266");
+            assert_eq!(g.message.len(), 1);
+            match &g.message[0] {
+                crate::message::Message::File(f) => {
+                    assert_eq!(f.file, "QQ20260829-154116.mp4");
+                    assert_eq!(f.file_id.as_deref(), Some("/ad295eef-f08f-4ec1-8c1f-bd158e513c17"));
+                    assert_eq!(f.file_size.as_deref(), Some("16717747"));
+                }
+                _ => panic!("expected File message segment"),
+            }
+        }
+        _ => panic!("expected group message event"),
+    }
+}
+
+#[test]
+fn de_keyboard_markdown_dice_message_event() {
+    let json = r#"{
+        "self_id": 1692038362,
+        "user_id": 2854211260,
+        "time": 1787992519,
+        "message_id": -280154787,
+        "message_seq": 3620502,
+        "message_type": "group",
+        "sender": {
+            "user_id": 2854211260,
+            "nickname": "是萌卡喵呢",
+            "card": "",
+            "role": "member",
+            "level": "0",
+            "title": ""
+        },
+        "raw_message": "[CQ:keyboard,rows=...][CQ:markdown,content=...]",
+        "font": 14,
+        "sub_type": "normal",
+        "message": [
+            {
+                "type": "keyboard",
+                "data": {
+                    "rows": [
+                        {
+                            "buttons": [
+                                {
+                                    "id": "1",
+                                    "render_data": {"label": "今日老婆", "visited_label": "今日老婆", "style": 1},
+                                    "action": {"type": 2, "permission": {"type": 2, "specify_role_ids": [], "specify_user_ids": []}, "unsupport_tips": "", "data": "今日老婆", "reply": false, "enter": false}
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {"type": "markdown", "data": {"content": "[](%7B%22version%22%3A2%7D)\n![img](https://qqbot.ugcimg.cn/xxx)"}},
+            {"type": "dice", "data": {"result": "5"}},
+            {"type": "at", "data": {"qq": "1170672908", "name": "108"}}
+        ],
+        "message_format": "array",
+        "post_type": "message",
+        "raw_pb": "",
+        "group_id": 253461266,
+        "group_name": "test"
+    }"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Message(MessageEvent::Group(g)) => {
+            assert_eq!(g.message.len(), 4);
+            match &g.message[0] {
+                crate::message::Message::Keyboard(k) => {
+                    assert!(k.rows.is_array());
+                }
+                _ => panic!("expected Keyboard message segment"),
+            }
+            match &g.message[1] {
+                crate::message::Message::Markdown(m) => {
+                    assert!(m.content.contains("version"));
+                }
+                _ => panic!("expected Markdown message segment"),
+            }
+            match &g.message[2] {
+                crate::message::Message::Dice(d) => {
+                    assert_eq!(d.result, "5");
+                }
+                _ => panic!("expected Dice message segment"),
+            }
+            match &g.message[3] {
+                crate::message::Message::At(a) => {
+                    assert_eq!(a.qq, "1170672908");
+                    assert_eq!(a.name.as_deref(), Some("108"));
+                }
+                _ => panic!("expected At message segment"),
+            }
+        }
+        _ => panic!("expected group message event"),
+    }
+}
+
+#[test]
+fn de_group_card_and_upload_notice_event() {
+    let card = r#"{
+        "time": 1787998371,
+        "self_id": 1692038362,
+        "post_type": "notice",
+        "notice_type": "group_card",
+        "group_id": 253461266,
+        "user_id": 3493682691,
+        "card_new": "",
+        "card_old": "入口即化柔柔弱弱软软糯糯威威风风浩浩荡荡"
+    }"#;
+    let event: Event = serde_json::from_str(card).unwrap();
+    match event {
+        Event::Notice(NoticeEvent::GroupCard(g)) => {
+            assert_eq!(g.group_id, "253461266");
+            assert_eq!(g.user_id, "3493682691");
+            assert_eq!(g.card_old, "入口即化柔柔弱弱软软糯糯威威风风浩浩荡荡");
+        }
+        _ => panic!("expected group_card notice event"),
+    }
+
+    let upload = r#"{
+        "time": 1788004958,
+        "self_id": 1692038362,
+        "post_type": "notice",
+        "notice_type": "group_upload",
+        "file": {
+            "id": "/87481339-3157-4b5c-9ad7-e6adff24f3e3",
+            "name": "1b86bbc2046898063501ba1fc9738921.mp4",
+            "size": 3685706,
+            "busid": 104
+        },
+        "group_id": 249335821,
+        "user_id": 3611925387
+    }"#;
+    let event: Event = serde_json::from_str(upload).unwrap();
+    match event {
+        Event::Notice(NoticeEvent::GroupUpload(g)) => {
+            assert_eq!(g.group_id, "249335821");
+            assert_eq!(g.file.name, "1b86bbc2046898063501ba1fc9738921.mp4");
+            assert_eq!(g.file.size, 3685706);
+        }
+        _ => panic!("expected group_upload notice event"),
+    }
+}
+
 /// 元事件状态字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Status {
@@ -517,6 +755,8 @@ impl UserId for NoticeEvent {
             NoticeEvent::GroupDecrease(g) => g.user_id.clone(),
             NoticeEvent::GroupBan(g) => g.user_id.clone(),
             NoticeEvent::GroupMessageEmojiLike(g) => g.user_id.clone(),
+            NoticeEvent::GroupCard(g) => g.user_id.clone(),
+            NoticeEvent::GroupUpload(g) => g.user_id.clone(),
         }
     }
 }
@@ -557,6 +797,8 @@ impl SelfId for NoticeEvent {
             NoticeEvent::GroupDecrease(g) => g.self_id.clone(),
             NoticeEvent::GroupBan(g) => g.self_id.clone(),
             NoticeEvent::GroupMessageEmojiLike(g) => g.self_id.clone(),
+            NoticeEvent::GroupCard(g) => g.self_id.clone(),
+            NoticeEvent::GroupUpload(g) => g.self_id.clone(),
         }
     }
 }

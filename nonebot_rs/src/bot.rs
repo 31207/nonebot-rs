@@ -105,6 +105,8 @@ impl Bot {
             NoticeEvent::GroupDecrease(g) => self.send_group_msg(&g.group_id, msg).await,
             NoticeEvent::GroupIncrease(g) => self.send_group_msg(&g.group_id, msg).await,
             NoticeEvent::GroupMessageEmojiLike(g) => self.send_group_msg(&g.group_id, msg).await,
+            NoticeEvent::GroupCard(g) => self.send_group_msg(&g.group_id, msg).await,
+            NoticeEvent::GroupUpload(g) => self.send_group_msg(&g.group_id, msg).await,
         }
     }
 

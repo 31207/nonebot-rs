@@ -178,6 +178,28 @@ pub fn notice_logger(event: &NoticeEvent) {
                 );
             }
         }
+        NoticeEvent::GroupCard(g) => {
+            event!(
+                Level::INFO,
+                "{} [{}] -> {}的群名片从 {} 改为 {}",
+                g.group_id.magenta(),
+                g.self_id.red(),
+                g.user_id.green(),
+                g.card_old.yellow(),
+                g.card_new.blue(),
+            );
+        }
+        NoticeEvent::GroupUpload(g) => {
+            event!(
+                Level::INFO,
+                "{} [{}] -> {}上传了文件({}, size={})",
+                g.group_id.magenta(),
+                g.self_id.red(),
+                g.user_id.green(),
+                g.file.name.yellow(),
+                g.file.size.to_string().blue(),
+            );
+        }
     }
 }
 

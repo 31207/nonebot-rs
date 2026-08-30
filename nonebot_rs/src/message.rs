@@ -1,3 +1,4 @@
+use crate::utils::{id_deserializer, option_id_deserializer};
 use serde::{Deserialize, Serialize};
 
 /// Onebot 协议消息定义
@@ -34,7 +35,7 @@ pub enum Message {
 
     /// 掷骰子魔法表情
     #[serde(rename = "dice")]
-    Dice,
+    Dice(DiceData),
 
     /// 窗口抖动（戳一戳）
     #[serde(rename = "shake")]
@@ -86,6 +87,15 @@ pub enum Message {
     /// 商城表情 (llonebot 扩展)
     #[serde(rename = "mface")]
     Mface(Mface),
+    /// 文件 (llonebot 扩展)
+    #[serde(rename = "file")]
+    File(File),
+    /// 键盘 (llonebot 扩展)
+    #[serde(rename = "keyboard")]
+    Keyboard(Keyboard),
+    /// Markdown (llonebot 扩展)
+    #[serde(rename = "markdown")]
+    Markdown(Markdown),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -149,6 +159,15 @@ pub struct Video {
 pub struct At {
     /// @QQ ID all 表示全体
     pub qq: String,
+    /// @某人 名称 (llonebot 扩展)
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DiceData {
+    /// 掷骰子结果
+    #[serde(default, deserialize_with = "id_deserializer")]
+    pub result: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -261,6 +280,33 @@ pub struct Mface {
     pub key: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct File {
+    /// 文件名
+    pub file: String,
+    /// 文件 URL
+    pub url: Option<String>,
+    /// 文件 ID
+    pub file_id: Option<String>,
+    /// 本地路径
+    pub path: Option<String>,
+    /// 文件大小
+    #[serde(default, deserialize_with = "option_id_deserializer")]
+    pub file_size: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Keyboard {
+    /// 键盘按钮行 (结构复杂, 保留原始 JSON)
+    pub rows: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Markdown {
+    /// Markdown 内容
+    pub content: String,
+}
+
 #[derive(Debug)]
 pub enum FileType {
     // url, timeout_seconds
@@ -310,7 +356,7 @@ impl UniMessage {
     }
 
     pub fn at(mut self, qq: String) -> UniMessage {
-        self.messages.push(Message::At(At { qq: qq }));
+        self.messages.push(Message::At(At { qq: qq, name: None }));
         self
     }
     pub fn face(mut self, id: String) -> UniMessage {
