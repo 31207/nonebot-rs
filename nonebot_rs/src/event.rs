@@ -261,13 +261,16 @@ pub struct NotifyNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 被戳者 ID
-    #[serde(deserialize_with = "id_deserializer")]
-    pub target_id: String,
+    #[serde(default, deserialize_with = "option_id_deserializer")]
+    pub target_id: Option<String>,
     /// 群号
-    #[serde(deserialize_with = "option_id_deserializer")]
+    #[serde(default, deserialize_with = "option_id_deserializer")]
     pub group_id: Option<String>,
     /// 原始json数据
-    pub raw_info: serde_json::Value,
+    #[serde(default)]
+    pub raw_info: Option<serde_json::Value>,
+    /// 头衔 (sub_type = "title" 时)
+    pub title: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -719,6 +722,21 @@ fn de_group_card_and_upload_notice_event() {
             assert_eq!(g.file.size, 3685706);
         }
         _ => panic!("expected group_upload notice event"),
+    }
+}
+
+#[test]
+fn de_title_notify_event() {
+    let json = r#"{"time":1788097271,"self_id":1692038362,"post_type":"notice","notice_type":"notify","sub_type":"title","title":"前会长","group_id":593888649,"user_id":1428378600}"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Notice(NoticeEvent::Notify(n)) => {
+            assert_eq!(n.sub_type.as_deref(), Some("title"));
+            assert_eq!(n.title.as_deref(), Some("前会长"));
+            assert_eq!(n.group_id.as_deref(), Some("593888649"));
+            assert!(n.target_id.is_none());
+        }
+        _ => panic!("expected notify title notice event"),
     }
 }
 

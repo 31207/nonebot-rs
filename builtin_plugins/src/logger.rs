@@ -51,6 +51,17 @@ pub fn meta_logger(event: &MetaEvent) {
 pub fn notice_logger(event: &NoticeEvent) {
     match event {
         NoticeEvent::Notify(n) => {
+            if n.sub_type.as_deref() == Some("title") {
+                event!(
+                    Level::INFO,
+                    "{} [{}] -> {}获得专属头衔 {}",
+                    n.group_id.as_deref().unwrap_or("").magenta(),
+                    n.self_id.red(),
+                    n.user_id.green(),
+                    n.title.as_deref().unwrap_or("").yellow(),
+                );
+                return;
+            }
             if let Some(group_id) = &n.group_id {
                 event!(
                     Level::INFO,
@@ -58,7 +69,7 @@ pub fn notice_logger(event: &NoticeEvent) {
                     group_id.magenta(),
                     n.self_id.red(),
                     n.user_id.green(),
-                    n.target_id.blue(),
+                    n.target_id.as_deref().unwrap_or("").blue(),
                 );
             } else {
                 event!(
