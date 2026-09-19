@@ -1,6 +1,6 @@
 // 发送图片，语音等文件时用 FileType 枚举
 // FileType 有两种变体，Path、Url分别对应本地路径和网络链接
-use nonebot_rs::message::FileType;
+// use nonebot_rs::message::FileType;
 use builtin_plugins::matcher::prelude::*;
 use nonebot_rs::message::UniMessage;
 
@@ -23,27 +23,31 @@ pub struct MsgEventTest {
 impl Handler<MessageEvent> for MsgEventTest {
     // 实现针对MessageEvent的 Handler trait
     /*
-       消息事件分为两大类 MessageEvent 和 NoticeEvent，目前Handler 仅支持这两类事件的处理
-       若要处理这两类事件下属的具体事件类型，可以在 handle 方法内进行匹配处理
-       例如：match event { MessageEvent::Private(p) => {...}, MessageEvent::Group(g) => {...} }
+       Handler<E> 可针对 Event、MessageEvent、NoticeEvent、RequestEvent、MetaEvent 任意一层实现
+       若要处理更细粒度的事件，有两种方式：
+         - 用 on_notice!(Essence) / on_event!(...) 宏或 rules::is_notice_type("essence") 过滤
+         - 在 handle 方法内对 event 进行匹配，例如：
+           match event { MessageEvent::Private(p) => {...}, MessageEvent::Group(g) => {...} }
 
-       可以查看nonebot_rs/src/event.rs 中 MessageEvent 和 NoticeEvent 的定义了解具体事件类型
+       具体示例见 bot_example/src/fine_event_test.rs
+       可以查看 nonebot_rs/src/event.rs 了解所有事件定义
     */
 
     /*
-       首先需要实现一个 match_ 方法用于匹配消息事件，在方法中对消息文本进行各种判断
+       首先需要实现 match_ 方法用于匹配消息事件，在方法中对消息文本进行各种判断
        比如是否包含某个关键词，是否以某个命令开头等
-       该方法返回 true 则表示该消息事件会被该 Handler 处理
-       该方法返回 false 则表示该消息事件不会被该 Handler 处理
-    fn match_(&self, event: &mut MessageEvent) -> bool {
-        // 这里简单地返回 true，表示匹配所有消息事件
-        true
-    }
+       match_ 返回 Some(Target) 表示匹配成功，handle 将收到该 Target；返回 None 表示不匹配
+       不细分类型时 Target 通常就是 E 本身（也可以直接写 type Target = MessageEvent;）
 
-        on_message! 宏用于简化消息事件的匹配处理
-        该宏会自动为 match_ 方法生成匹配代码
-        除此之外，还有 on_command!、on_start_with! 等宏可供使用
-        这些宏可以根据不同的匹配需求生成相应的 match_ 方法代码
+       手动实现的例子：
+       type Target = MessageEvent;
+       fn match_(&self, event: &mut MessageEvent) -> Option<MessageEvent> {
+           Some(event.clone())
+       }
+
+       一般不需要手写，on_message! 宏用于简化通配匹配（Target = E）
+       除此之外，还有 on_command!、on_start_with! 等宏
+       需要把 Target 细化为子事件时，用 on_notice!(Essence)、on_private_message!()、on_group_message!() 等
     */
     on_message!(MessageEvent);
 

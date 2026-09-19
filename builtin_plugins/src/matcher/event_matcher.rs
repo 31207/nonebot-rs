@@ -1,5 +1,7 @@
 use super::{build_temp_message_event_matcher, Handler, Matcher};
-use nonebot_rs::{event::MessageEvent, event::NoticeEvent, message::UniMessage, ApiChannelItem};
+use nonebot_rs::{
+    event::Event, event::MessageEvent, event::NoticeEvent, message::UniMessage, ApiChannelItem,
+};
 use async_trait::async_trait;
 use colored::*;
 use tracing::{event, Level};
@@ -123,7 +125,7 @@ impl Matcher<MessageEvent> {
     /// 发送 Vec<Message> 消息
     pub async fn send(&self, msg: Vec<nonebot_rs::message::Message>) {
         if let (Some(bot), Some(event)) = (&self.bot, &self.event) {
-            bot.send_by_message_event(&event, msg).await;
+            bot.send_by_message_event(event, msg).await;
         } else {
             event!(
                 Level::ERROR,
@@ -143,7 +145,29 @@ impl Matcher<NoticeEvent> {
     /// 发送 Vec<Message> 消息
     pub async fn send(&self, msg: Vec<nonebot_rs::message::Message>) {
         if let (Some(bot), Some(event)) = (&self.bot, &self.event) {
-            bot.send_by_notice_event(&event, msg).await;
+            bot.send_by_notice_event(event, msg).await;
+        } else {
+            event!(
+                Level::ERROR,
+                "{}",
+                "Sending msg with unbuilt matcher!".red()
+            );
+        }
+    }
+}
+
+impl Matcher<Event> {
+    /// 发送纯文本消息
+    pub async fn send_text(&self, msg: &str) {
+        self.send(UniMessage::new().text(msg).build()).await;
+    }
+
+    /// 发送 Vec<Message> 消息
+    ///
+    /// 根据 Event 的内部类型自动选择群聊或私聊发送
+    pub async fn send(&self, msg: Vec<nonebot_rs::message::Message>) {
+        if let (Some(bot), Some(event)) = (&self.bot, &self.event) {
+            bot.send_by_event(event, msg).await;
         } else {
             event!(
                 Level::ERROR,

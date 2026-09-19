@@ -1,5 +1,5 @@
 use crate::api_resp;
-use crate::event::{MessageEvent, NoticeEvent};
+use crate::event::{Event, MessageEvent, NoticeEvent};
 use crate::{api, config, message, utils, ApiChannelItem, ApiResp};
 use colored::*;
 use tokio::sync::{mpsc, watch};
@@ -107,6 +107,26 @@ impl Bot {
             NoticeEvent::GroupMessageEmojiLike(g) => self.send_group_msg(&g.group_id, msg).await,
             NoticeEvent::GroupCard(g) => self.send_group_msg(&g.group_id, msg).await,
             NoticeEvent::GroupUpload(g) => self.send_group_msg(&g.group_id, msg).await,
+            NoticeEvent::Essence(e) => self.send_group_msg(&e.group_id, msg).await,
+            NoticeEvent::FriendAdd(f) => self.send_private_msg(&f.user_id, msg).await,
+            NoticeEvent::GroupAdmin(g) => self.send_group_msg(&g.group_id, msg).await,
+        }
+    }
+
+    /// 根据 Event 类型发送消息
+    pub async fn send_by_event(&self, event: &Event, msg: Vec<message::Message>) {
+        match event {
+            Event::Message(m) | Event::MessageSent(m) => {
+                self.send_by_message_event(m, msg).await
+            }
+            Event::Notice(n) => self.send_by_notice_event(n, msg).await,
+            _ => {
+                event!(
+                    Level::ERROR,
+                    "{}",
+                    "该事件类型不支持发送消息".bright_red()
+                );
+            }
         }
     }
 

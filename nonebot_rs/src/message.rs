@@ -31,7 +31,7 @@ pub enum Message {
 
     /// 猜拳魔法表情
     #[serde(rename = "rps")]
-    Rps,
+    Rps(Rps),
 
     /// 掷骰子魔法表情
     #[serde(rename = "dice")]
@@ -39,7 +39,7 @@ pub enum Message {
 
     /// 窗口抖动（戳一戳）
     #[serde(rename = "shake")]
-    Shake,
+    Shake(Shake),
 
     /// 戳一戳
     #[serde(rename = "poke")]
@@ -47,7 +47,7 @@ pub enum Message {
 
     /// 匿名发消息
     #[serde(rename = "anonymous")]
-    Anonymous,
+    Anonymous(Anonymous),
 
     /// 链接分享
     #[serde(rename = "share")]
@@ -169,6 +169,15 @@ pub struct DiceData {
     #[serde(default, deserialize_with = "id_deserializer")]
     pub result: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct Rps {}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct Shake {}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct Anonymous {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Poke {
@@ -506,5 +515,30 @@ mod tests {
         });
         let json = serde_json::to_string(&msg).unwrap();
         assert_eq!(json, r#"{"type":"text","data":{"text":"hello"}}"#);
+    }
+
+    #[test]
+    fn test_empty_data_segment_serde() {
+        let rps: Message = serde_json::from_str(r#"{"type":"rps","data":{}}"#).unwrap();
+        assert!(matches!(rps, Message::Rps(_)));
+        assert_eq!(
+            serde_json::to_string(&rps).unwrap(),
+            r#"{"type":"rps","data":{}}"#
+        );
+
+        let shake: Message = serde_json::from_str(r#"{"type":"shake","data":{}}"#).unwrap();
+        assert!(matches!(shake, Message::Shake(_)));
+        assert_eq!(
+            serde_json::to_string(&shake).unwrap(),
+            r#"{"type":"shake","data":{}}"#
+        );
+
+        let anonymous: Message =
+            serde_json::from_str(r#"{"type":"anonymous","data":{}}"#).unwrap();
+        assert!(matches!(anonymous, Message::Anonymous(_)));
+        assert_eq!(
+            serde_json::to_string(&anonymous).unwrap(),
+            r#"{"type":"anonymous","data":{}}"#
+        );
     }
 }

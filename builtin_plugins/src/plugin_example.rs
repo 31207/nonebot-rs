@@ -143,6 +143,11 @@ impl PluginExample {
                         Self::handle_message(&counter, m).await;
                     }
                 }
+                Event::MessageSent(m) => {
+                    if self.count_messages {
+                        Self::handle_message(&counter, m).await;
+                    }
+                }
                 Event::Notice(n) => {
                     if self.count_notices {
                         Self::handle_notice(&counter, n).await;

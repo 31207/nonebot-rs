@@ -11,10 +11,12 @@ fn main() {
         .add_message_matcher(rcnb::rcnb())
         .add_message_matcher(bot_status::bot_status(None))
         .add_notice_matcher(notice_test::notice_test())
+        .add_notice_matcher(fine_event_test::essence_test())
+        .add_event_matcher(fine_event_test::fine_event_test())
         .add_message_matcher(msg_event_test::msg_event_test())
         .add_message_matcher(count_msg_types::count_msg_types());
 
-    // nb.add_plugin(matchers);
+    nb.add_plugin(matchers);
     nb.add_plugin(logger::Logger::new());
     nb.run()
 }

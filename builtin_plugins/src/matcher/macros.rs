@@ -5,8 +5,9 @@
 #[macro_export]
 macro_rules! on_message {
     ($event_type: ty) => {
-        fn match_(&self, _: &mut $event_type) -> bool {
-            true
+        type Target = $event_type;
+        fn match_(&self, event: &mut $event_type) -> Option<$event_type> {
+            Some(event.clone())
         }
     };
 }
@@ -19,17 +20,19 @@ macro_rules! on_message {
 #[macro_export]
 macro_rules! on_command {
     ($event_type: ty, $command: expr) => {
-        fn match_(&self, event: &mut $event_type) -> bool {
+        type Target = $event_type;
+        fn match_(&self, event: &mut $event_type) -> Option<$event_type> {
             if event.get_raw_message().starts_with($command) {
                 event.set_raw_message(event.get_raw_message().replace($command, "").to_string());
-                true
+                Some(event.clone())
             } else {
-                false
+                None
             }
         }
     };
     ($event_type: ty, $($x:expr),*) => {
-        fn match_(&self, event: &mut $event_type) -> bool {
+        type Target = $event_type;
+        fn match_(&self, event: &mut $event_type) -> Option<$event_type> {
             let mut commands:Vec<&str> = Vec::new();
             $(
                 commands.push($x);
@@ -37,10 +40,10 @@ macro_rules! on_command {
             for command in commands.iter() {
                 if event.get_raw_message().starts_with(command) {
                     event.set_raw_message(event.get_raw_message().replace(command, "").to_string());
-                    return true;
+                    return Some(event.clone());
                 }
             }
-            false
+            None
         }
     };
 }
@@ -53,26 +56,152 @@ macro_rules! on_command {
 #[macro_export]
 macro_rules! on_start_with {
     ($event_type: ty, $command: expr) => {
-        fn match_(&self, event: &mut $event_type) -> bool {
+        type Target = $event_type;
+        fn match_(&self, event: &mut $event_type) -> Option<$event_type> {
             if event.get_raw_message().starts_with($command) {
-                true
+                Some(event.clone())
             } else {
-                false
+                None
             }
         }
     };
     ($event_type: ty, $($x:expr),*) => {
-        fn match_(&self, event: &mut $event_type) -> bool {
+        type Target = $event_type;
+        fn match_(&self, event: &mut $event_type) -> Option<$event_type> {
             let mut commands:Vec<&str> = Vec::new();
             $(
                 commands.push($x);
             )*
             for command in commands.iter() {
                 if event.get_raw_message().starts_with(command) {
-                    return true;
+                    return Some(event.clone());
                 }
             }
-            false
+            None
+        }
+    };
+}
+
+/// 注册私聊消息匹配器（类型细化）
+///
+/// `handle` 将直接收到 `PrivateMessageEvent`
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! on_private_message {
+    () => {
+        type Target = $crate::matcher::prelude::PrivateMessageEvent;
+        fn match_(
+            &self,
+            event: &mut $crate::matcher::prelude::MessageEvent,
+        ) -> Option<$crate::matcher::prelude::PrivateMessageEvent> {
+            match event {
+                $crate::matcher::prelude::MessageEvent::Private(e) => Some(e.clone()),
+                _ => None,
+            }
+        }
+    };
+}
+
+/// 注册群聊消息匹配器（类型细化）
+///
+/// `handle` 将直接收到 `GroupMessageEvent`
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! on_group_message {
+    () => {
+        type Target = $crate::matcher::prelude::GroupMessageEvent;
+        fn match_(
+            &self,
+            event: &mut $crate::matcher::prelude::MessageEvent,
+        ) -> Option<$crate::matcher::prelude::GroupMessageEvent> {
+            match event {
+                $crate::matcher::prelude::MessageEvent::Group(e) => Some(e.clone()),
+                _ => None,
+            }
+        }
+    };
+}
+
+#[doc(hidden)]
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! on_notice_variant {
+    ($variant:ident, $target:ident) => {
+        type Target = $crate::matcher::prelude::$target;
+        fn match_(
+            &self,
+            event: &mut $crate::matcher::prelude::NoticeEvent,
+        ) -> Option<$crate::matcher::prelude::$target> {
+            match event {
+                $crate::matcher::prelude::NoticeEvent::$variant(e) => Some(e.clone()),
+                _ => None,
+            }
+        }
+    };
+}
+
+/// 注册通知子类型匹配器（类型细化）
+///
+/// 如 `on_notice!(Essence);`，`handle` 将直接收到 `EssenceNoticeEvent`
+/// 具体变体见 `nonebot_rs::event::NoticeEvent`
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! on_notice {
+    (Notify) => {
+        $crate::on_notice_variant!(Notify, NotifyNoticeEvent);
+    };
+    (FriendRecall) => {
+        $crate::on_notice_variant!(FriendRecall, FriendRecallNoticeEvent);
+    };
+    (GroupRecall) => {
+        $crate::on_notice_variant!(GroupRecall, GroupRecallNoticeEvent);
+    };
+    (GroupIncrease) => {
+        $crate::on_notice_variant!(GroupIncrease, GroupIncreaseNoticeEvent);
+    };
+    (GroupDecrease) => {
+        $crate::on_notice_variant!(GroupDecrease, GroupDecreaseNoticeEvent);
+    };
+    (GroupBan) => {
+        $crate::on_notice_variant!(GroupBan, GroupBanNoticeEvent);
+    };
+    (GroupMessageEmojiLike) => {
+        $crate::on_notice_variant!(GroupMessageEmojiLike, GroupMessageEmojiLikeNoticeEvent);
+    };
+    (GroupCard) => {
+        $crate::on_notice_variant!(GroupCard, GroupCardNoticeEvent);
+    };
+    (GroupUpload) => {
+        $crate::on_notice_variant!(GroupUpload, GroupUploadNoticeEvent);
+    };
+    (Essence) => {
+        $crate::on_notice_variant!(Essence, EssenceNoticeEvent);
+    };
+    (FriendAdd) => {
+        $crate::on_notice_variant!(FriendAdd, FriendAddNoticeEvent);
+    };
+    (GroupAdmin) => {
+        $crate::on_notice_variant!(GroupAdmin, GroupAdminNoticeEvent);
+    };
+}
+
+/// 注册任意 Event 匹配器
+///
+/// 匹配任意 `Event` 模式，如 `on_event!(Event::Notice(NoticeEvent::Essence(_)));`
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! on_event {
+    ($pattern:pat) => {
+        type Target = $crate::matcher::prelude::Event;
+        fn match_(
+            &self,
+            event: &mut $crate::matcher::prelude::Event,
+        ) -> Option<$crate::matcher::prelude::Event> {
+            if matches!(event, $pattern) {
+                Some(event.clone())
+            } else {
+                None
+            }
         }
     };
 }
@@ -87,7 +216,7 @@ macro_rules! matcher_request {
 
         #[async_trait]
         impl Handler<MessageEvent> for Temp {
-            on_match_all!();
+            $crate::on_message!(MessageEvent);
             async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
                 $b
             }

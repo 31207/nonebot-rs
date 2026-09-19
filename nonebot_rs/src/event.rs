@@ -18,6 +18,10 @@ pub enum Event {
     #[serde(rename = "message")]
     Message(MessageEvent),
 
+    /// 机器人自己发送的消息事件
+    #[serde(rename = "message_sent")]
+    MessageSent(MessageEvent),
+
     /// 通知事件
     #[serde(rename = "notice")]
     Notice(NoticeEvent),
@@ -246,6 +250,15 @@ pub enum NoticeEvent {
 
     #[serde(rename = "group_upload")]
     GroupUpload(GroupUploadNoticeEvent),
+
+    #[serde(rename = "essence")]
+    Essence(EssenceNoticeEvent),
+
+    #[serde(rename = "friend_add")]
+    FriendAdd(FriendAddNoticeEvent),
+
+    #[serde(rename = "group_admin")]
+    GroupAdmin(GroupAdminNoticeEvent),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -433,6 +446,63 @@ pub struct GroupUploadFile {
     pub size: i64,
     /// busid
     pub busid: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EssenceNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 被设为精华的消息 ID
+    pub message_id: i64,
+    /// 消息发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub sender_id: String,
+    /// 子类型 add|delete
+    pub sub_type: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 操作者 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub operator_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FriendAddNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 添加好友的用户 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupAdminNoticeEvent {
+    /// Event 时间戳
+    pub time: i64,
+    /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub self_id: String,
+    /// 子类型 set|unset
+    pub sub_type: String,
+    /// 群号
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    /// 被设置/取消管理员的用户 ID
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
+    /// 操作者 ID
+    #[serde(default, deserialize_with = "option_id_deserializer")]
+    pub operator_id: Option<String>,
 }
 /// 请求事件
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -740,6 +810,87 @@ fn de_title_notify_event() {
     }
 }
 
+#[test]
+fn de_message_sent_private_file_event() {
+    let json = r#"{"self_id":1692038362,"user_id":1692038362,"time":1788282004,"message_id":370745486,"message_seq":0,"message_type":"private","sender":{"user_id":1692038362,"nickname":""},"raw_message":"[CQ:file,file=まめきぷ.png,url=,file_id=,path=,file_size=1630612]","font":14,"sub_type":"friend","message":[{"type":"file","data":{"file":"まめきぷ.png","url":"","file_id":"","path":"","file_size":"1630612"}}],"message_format":"array","post_type":"message_sent","raw_pb":"","target_id":0}"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::MessageSent(MessageEvent::Private(p)) => {
+            assert_eq!(p.self_id, "1692038362");
+            assert_eq!(p.user_id, "1692038362");
+            assert_eq!(p.sub_type, "friend");
+            match &p.message[0] {
+                crate::message::Message::File(f) => {
+                    assert_eq!(f.file, "まめきぷ.png");
+                    assert_eq!(f.file_size.as_deref(), Some("1630612"));
+                }
+                _ => panic!("expected File message segment"),
+            }
+        }
+        _ => panic!("expected message_sent private event"),
+    }
+}
+
+#[test]
+fn de_shake_message_event() {
+    let json = r#"{"self_id":1692038362,"user_id":1165663204,"time":1788628939,"message_id":1455634142,"message_seq":7903384,"message_type":"group","sender":{"user_id":1165663204,"nickname":"","card":"George33（ln苦手","role":"member","level":"62","title":""},"raw_message":"[CQ:shake]","font":14,"sub_type":"normal","message":[{"type":"shake","data":{}}],"message_format":"array","post_type":"message","raw_pb":"","group_id":249335821,"group_name":"osu!mania 4K萌新交流群"}"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Message(MessageEvent::Group(g)) => {
+            assert_eq!(g.group_id, "249335821");
+            assert_eq!(g.sender.card, "George33（ln苦手");
+            match &g.message[0] {
+                crate::message::Message::Shake(_) => {}
+                _ => panic!("expected Shake message segment"),
+            }
+        }
+        _ => panic!("expected group message event"),
+    }
+}
+
+#[test]
+fn de_essence_notice_event() {
+    let json = r#"{"time":1789617717,"self_id":1692038362,"post_type":"notice","notice_type":"essence","message_id":-279345864,"sender_id":1707235874,"sub_type":"add","group_id":621184446,"user_id":1707235874,"operator_id":2777876404}"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Notice(NoticeEvent::Essence(e)) => {
+            assert_eq!(e.message_id, -279345864);
+            assert_eq!(e.sender_id, "1707235874");
+            assert_eq!(e.operator_id, "2777876404");
+            assert_eq!(e.group_id, "621184446");
+            assert_eq!(e.sub_type, "add");
+        }
+        _ => panic!("expected essence notice event"),
+    }
+}
+
+#[test]
+fn de_friend_add_notice_event() {
+    let json = r#"{"time":1788602602,"self_id":1692038362,"post_type":"notice","notice_type":"friend_add","user_id":1951701741}"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Notice(NoticeEvent::FriendAdd(f)) => {
+            assert_eq!(f.user_id, "1951701741");
+        }
+        _ => panic!("expected friend_add notice event"),
+    }
+}
+
+#[test]
+fn de_group_admin_notice_event() {
+    let json = r#"{"time":1789466674,"self_id":1692038362,"post_type":"notice","notice_type":"group_admin","sub_type":"set","group_id":671990216,"user_id":3535725493}"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Notice(NoticeEvent::GroupAdmin(g)) => {
+            assert_eq!(g.sub_type, "set");
+            assert_eq!(g.group_id, "671990216");
+            assert_eq!(g.user_id, "3535725493");
+            assert!(g.operator_id.is_none());
+        }
+        _ => panic!("expected group_admin notice event"),
+    }
+}
+
 /// 元事件状态字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Status {
@@ -775,6 +926,9 @@ impl UserId for NoticeEvent {
             NoticeEvent::GroupMessageEmojiLike(g) => g.user_id.clone(),
             NoticeEvent::GroupCard(g) => g.user_id.clone(),
             NoticeEvent::GroupUpload(g) => g.user_id.clone(),
+            NoticeEvent::Essence(e) => e.user_id.clone(),
+            NoticeEvent::FriendAdd(f) => f.user_id.clone(),
+            NoticeEvent::GroupAdmin(g) => g.user_id.clone(),
         }
     }
 }
@@ -817,6 +971,9 @@ impl SelfId for NoticeEvent {
             NoticeEvent::GroupMessageEmojiLike(g) => g.self_id.clone(),
             NoticeEvent::GroupCard(g) => g.self_id.clone(),
             NoticeEvent::GroupUpload(g) => g.self_id.clone(),
+            NoticeEvent::Essence(e) => e.self_id.clone(),
+            NoticeEvent::FriendAdd(f) => f.self_id.clone(),
+            NoticeEvent::GroupAdmin(g) => g.self_id.clone(),
         }
     }
 }
@@ -831,6 +988,7 @@ impl SelfId for Event {
     fn get_self_id(&self) -> String {
         match self {
             Event::Message(e) => e.get_self_id(),
+            Event::MessageSent(e) => e.get_self_id(),
             Event::Request(e) => e.get_self_id(),
             Event::Notice(e) => e.get_self_id(),
             Event::Meta(e) => e.get_self_id(),
@@ -845,5 +1003,38 @@ impl SelfId for Event {
 impl GroupBanNoticeEvent {
     pub fn is_ban_or_lift_ban(&self) -> bool {
         self.sub_type == "ban"
+    }
+}
+
+impl NoticeEvent {
+    /// 通知事件的 notice_type 字符串
+    pub fn get_notice_type(&self) -> &'static str {
+        match self {
+            NoticeEvent::Notify(_) => "notify",
+            NoticeEvent::FriendRecall(_) => "friend_recall",
+            NoticeEvent::GroupRecall(_) => "group_recall",
+            NoticeEvent::GroupIncrease(_) => "group_increase",
+            NoticeEvent::GroupDecrease(_) => "group_decrease",
+            NoticeEvent::GroupBan(_) => "group_ban",
+            NoticeEvent::GroupMessageEmojiLike(_) => "group_msg_emoji_like",
+            NoticeEvent::GroupCard(_) => "group_card",
+            NoticeEvent::GroupUpload(_) => "group_upload",
+            NoticeEvent::Essence(_) => "essence",
+            NoticeEvent::FriendAdd(_) => "friend_add",
+            NoticeEvent::GroupAdmin(_) => "group_admin",
+        }
+    }
+}
+
+impl UserId for Event {
+    fn get_user_id(&self) -> String {
+        match self {
+            Event::Message(e) => e.get_user_id(),
+            Event::MessageSent(e) => e.get_user_id(),
+            Event::Notice(e) => e.get_user_id(),
+            Event::Request(e) => e.get_user_id(),
+            Event::Meta(_) => String::new(),
+            Event::Nonebot(_) => String::new(),
+        }
     }
 }

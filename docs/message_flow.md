@@ -127,7 +127,7 @@ loop {
 
 ## 4. 事件路由（broadcast → 插件 → Matcher → Handler）
 
-### 4.1 `Matchers::event_recv()` (`matchers.rs:132`)
+### 4.1 `Matchers::event_recv()` (`matchers.rs:160`)
 
 ```text
 event_receiver.recv() ← broadcast channel
@@ -138,19 +138,24 @@ event_receiver.recv() ← broadcast channel
   └─ handle_events(event, bot)
 ```
 
-### 4.2 `handle_events()` — 按事件类型分发 (`matchers.rs:49`)
+### 4.2 `handle_events()` — 按事件类型分发 (`matchers.rs:51`)
 
 ```
-Event::Message → handle_event(self.message.clone(), event, bot)
-Event::Notice  → handle_event(self.notice.clone(), event, bot)
-Event::Request → handle_event(self.request.clone(), event, bot)
-Event::Meta    → handle_event(self.meta.clone(), event, bot)
+event 层 (Matcher<Event>) → handle_event(self.event.clone(), event, bot, message_sent)
+  └─ 返回 true（block）→ 直接 return，不再进入分类 Matcher
+Event::Message → handle_event(self.message.clone(), event, bot, false)
+Event::MessageSent → handle_event(self.message.clone(), event, bot, true)
+Event::Notice  → handle_event(self.notice.clone(), event, bot, false)
+Event::Request → handle_event(self.request.clone(), event, bot, false)
+Event::Meta    → handle_event(self.meta.clone(), event, bot, false)
 Event::Nonebot → BotConnect → run_on_connect() / BotDisconnect → run_on_disconnect()
 ```
 
 > **注意**: `handle_events` 会 clone 整个 `BTreeMap`。这是因为 `handle_event` 需要同时持有 `&mut self`（用于移除临时 Matcher）和迭代 Matcher 集合。延迟移除策略（先收集名称、迭代后统一移除）缓解了迭代中修改的问题。
 
-### 4.3 `handle_event()` — 按优先级遍历 (`matchers.rs:77`)
+> **event 层**: `Matcher<Event>` 最先匹配，可匹配任意粒度事件（如 `Event::Notice(NoticeEvent::Essence(_))`）。默认 `block = true` 时匹配成功将跳过后续分类 Matcher；`set_block(false)` 则继续传递。`Event::MessageSent` 进入 event 层时同样受 `match_message_sent()` opt-in 控制。
+
+### 4.3 `handle_event()` — 按优先级遍历 (`matchers.rs:93`)
 
 ```
 遍历 BTreeMap<i8 priority, 升序>
@@ -161,7 +166,7 @@ Event::Nonebot → BotConnect → run_on_connect() / BotDisconnect → run_on_di
 
 **优先级机制**: `BTreeMap` 键为 `i8`，负数最小 = 最高优先级。例如 `-1` 优先于 `0` 优先于 `1`。
 
-### 4.4 `_handler_event()` — 逐 Matcher 匹配 (`matchers.rs:97`)
+### 4.4 `_handler_event()` — 逐 Matcher 匹配 (`matchers.rs:116`)
 
 ```text
 for (name, matcher) in matcherh.iter() {
@@ -179,7 +184,7 @@ for (name, matcher) in matcherh.iter() {
 
 ---
 
-## 5. Matcher 匹配逻辑 `Matcher::match_()` (`matcher.rs:153`)
+## 5. Matcher 匹配逻辑 `Matcher::match_()` (`matcher.rs:230`)
 
 ```
 1. 超时检查
@@ -197,37 +202,47 @@ for (name, matcher) in matcherh.iter() {
 
 4. 规则组 (rules)
    └─ 遍历 rules，逐个调用 Arc<dyn Fn(&E, &BotConfig) -> bool>
-      ├─ is_superuser()
-      ├─ is_bot() / is_user()
-      ├─ in_group() / in_private_chat()
+      ├─ is_superuser() / is_bot() / is_user()
+      ├─ in_group() / in_private_chat() / in_groups()
       ├─ is_private_message_event() / is_group_message_event()
+      ├─ is_notice_type("essence") — 按 NoticeEvent::get_notice_type() 过滤
+      └─ is_request_type("friend") — 按 RequestEvent.request_type 过滤
    └─ 任一返回 false → return false
 
 5. Handler 匹配
-   └─ handler.match_(&mut event)
-      ├─ on_message! → 永远 true
+   └─ message_sent 事件额外检查 handler.match_message_sent()（默认 false，直接跳过）
+   └─ handler.match_(&mut event) -> Option<Handler::Target>
+      ├─ on_message! → Some(event.clone())，Target = E
+      ├─ on_notice!(Essence) → Some(EssenceNoticeEvent)，Target 细化为子事件
+      ├─ on_private_message!() / on_group_message!() → Target 细化为私聊/群聊事件
+      ├─ on_event!(pattern) → 匹配任意 Event 模式，Target = Event
       └─ on_command!("echo") → raw_message 以 "echo" 开头，strip 前缀
-   └─ false → return false
+   └─ None → return false
 
 6. 匹配成功
-   └─ tokio::spawn(handler.handle(event, matcher))
+   └─ tokio::spawn(handler.handle(target, matcher))
    └─ return true
 ```
 
 > **关键**: `handler.handle()` 被 spawn 为独立 tokio task，与事件路由并发执行。Matcher 迭代立即继续。
 
+> **类型细化**: `Handler::Target` 是 `match_` 匹配成功后交给 `handle` 的具体事件类型。`Matcher` 内部通过 `DynHandler` 擦除该关联类型（`Box<dyn Any + Send>` 传递 target），因此不同 `Target` 的 Handler 可以共存于同一个 `Matcher` 集合中。
+
 ---
 
 ## 6. API 调用（插件 → WS → Onebot）
 
-### 6.1 无需响应 (`Bot::call_api()`) (`bot.rs:112`)
+### 6.1 无需响应 (`Bot::call_api()`) (`bot.rs:134`)
 
 ```text
 Handler 调用
   └─ matcher.send_text("hello")
       └─ Matcher::send(vec![Message::Text(...)])
-          └─ Bot::send_by_message_event(event, msg)
-              └─ Bot::send_group_msg(group_id, msg)  // 或 send_private_msg
+          ├─ Matcher<MessageEvent> → Bot::send_by_message_event(event, msg)
+          ├─ Matcher<NoticeEvent>  → Bot::send_by_notice_event(event, msg)
+          ├─ Matcher<Event>        → Bot::send_by_event(event, msg)
+          │   └─ 按 Event 内部类型路由到 send_by_message_event / send_by_notice_event
+          └─ 最终 Bot::send_group_msg(group_id, msg)  // 或 send_private_msg
                   └─ 构造 Api::SendGroupMsg { params, echo }
                   └─ api_sender.send(ApiChannelItem::Api(api))
                       ↓
@@ -240,7 +255,7 @@ Handler 调用
                    WebSocket → Onebot
 ```
 
-### 6.2 带响应 (`Bot::call_api_resp()`) (`bot.rs:126`)
+### 6.2 带响应 (`Bot::call_api_resp()`) (`bot.rs:147`)
 
 ```text
 1. 发送 Api::GetLoginInfo { echo: "GetLoginInfo-1690000000" }
@@ -297,14 +312,16 @@ Handler 调用
     │  Matchers::event_recv()        │  Logger::event_recv()
     │    ├─ 查 Bot (by self_id)      │
     │    └─ handle_events()          │
+    │         ├─ event 层 Matcher<Event> │
+    │         │    └─ block=true 则结束   │
     │         ├─ handle_event() 按优先级 │
     │         └─ _handler_event() 逐Matcher│
     │              └─ Matcher::match_()  │
     │                   ├─ timeout check │
     │                   ├─ pre_matchers  │
     │                   ├─ rules         │
-    │                   └─ handler.match_()
-    │                        └─ spawn(handler.handle())
+    │                   └─ handler.match_() → Option<Target>
+    │                        └─ spawn(handler.handle(target))
     │                             └─ matcher.send_text()
     │                                  └─ api_sender ─────┐
     └────────────────────────────────────────────────────┼─┘
@@ -357,12 +374,14 @@ WS handler                         Nonebot::recv()
 | WS 读取帧为 Err（断开） | `utils.rs:103-109` | 发送 `RemoveBot`，income 任务退出 |
 | JSON 反序列化失败 | `utils.rs:93-101` | ERROR 日志，继续读取下一帧 |
 | broadcast 通道满 | `utils.rs:115-120` | ERROR 日志，事件被丢弃 |
-| 事件 self_id 无对应 Bot | `matchers.rs:141-147` | 静默丢弃 |
-| Matcher 超时 | `matcher.rs:164-173` | 移除 Matcher + 调用 timeout_drop() |
-| 临时 Matcher 匹配后 | `matchers.rs:120-128` | 收集到 temp_to_remove，迭代后统一移除 |
-| block=true 阻隔 | `matchers.rs:90-92` | 低优先级 Matcher 不再处理 |
-| API 响应 echo 不匹配 | `bot.rs:148-153` | 忽略，继续等待下一个响应 |
-| API 响应超时（30s） | `bot.rs:139-154` | 返回 None |
-| API sender 通道关闭 | `bot.rs:128-131` | Ok()? 返回 None |
+| 事件 self_id 无对应 Bot |  `matchers.rs:169-175` | 静默丢弃 |
+| Matcher 超时 |  `matcher.rs:241-250` | 移除 Matcher + 调用 timeout_drop() |
+| 临时 Matcher 匹配后 | `matchers.rs:148-156` | 收集到 temp_to_remove，迭代后统一移除 |
+| block=true 阻隔 | `matchers.rs:145-147` | 低优先级 Matcher 不再处理 |
+| event 层 block | `matchers.rs:53-59` | event 层 Matcher 匹配并 block，跳过分类 Matcher |
+| message_sent 未 opt-in | `matchers.rs:132-137` | handler.match_message_sent() 为 false 时跳过该 Matcher |
+| API 响应 echo 不匹配 |  `bot.rs:170-174` | 忽略，继续等待下一个响应 |
+| API 响应超时（30s） |  `bot.rs:160-178` | 返回 None |
+| API sender 通道关闭 |  `bot.rs:150-153` | Ok()? 返回 None |
 | ChangeBotConfig bot 不存在 | `action.rs:70` | expect("Bot not found") panic |
 | RemoveBot bot 不存在 | `action.rs:60-66` | WARN 日志，不 panic |

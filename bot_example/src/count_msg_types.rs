@@ -1,72 +1,80 @@
-use nonebot_rs::Message;
-use nonebot_rs::message::UniMessage;
 use builtin_plugins::matcher::prelude::*;
-pub struct CountMsgType {}
+use nonebot_rs::api_resp::RespMessage;
+use nonebot_rs::message::UniMessage;
+
+#[derive(Default)]
+struct Counts {
+    text: usize,
+    image: usize,
+    at: usize,
+    other: usize,
+}
+
+impl Counts {
+    fn add(&mut self, segment: &Message) {
+        match segment {
+            Message::Text(_) => self.text += 1,
+            Message::Image(_) => self.image += 1,
+            Message::At(_) => self.at += 1,
+            _ => self.other += 1,
+        }
+    }
+
+    fn add_all(&mut self, segments: &[Message]) {
+        for segment in segments {
+            self.add(segment);
+        }
+    }
+}
+
+impl std::fmt::Display for Counts {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Message Type Counts:\nText: {}\nImage: {}\nAt: {}\nOther: {}",
+            self.text, self.image, self.at, self.other
+        )
+    }
+}
+
+pub struct CountMsgTypes {}
 
 #[async_trait]
-impl Handler<MessageEvent> for CountMsgType {
+impl Handler<MessageEvent> for CountMsgTypes {
     on_message!(MessageEvent);
 
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-        let msg = event.get_message();
-        let mut text_count = 0;
-        let mut image_count = 0;
-        let mut at_count = 0;
-        let mut other_count = 0;
+        let mut counts = Counts::default();
 
-        for segment in msg.iter() {
+        for segment in event.get_message() {
             match segment {
-                Message::Text(_) => text_count += 1,
-                Message::Image(_) => image_count += 1,
-                Message::At(_) => at_count += 1,
-                Message::Reply(r) => {
-                    if let Ok(id) = r.id.parse::<i32>() {
-                        let replied_msg = matcher.get_msg(id).await;
-                        if let Some(replied_msg) = replied_msg {
-                            match replied_msg {
-                                nonebot_rs::api_resp::RespMessage::Group(g) => {
-                                    let replied_msg_content = g.message;
-                                    for seg in replied_msg_content.iter() {
-                                        match seg {
-                                            Message::Text(_) => text_count += 1,
-                                            Message::Image(_) => image_count += 1,
-                                            Message::At(_) => at_count += 1,
-                                            _ => other_count += 1,
-                                        }
-                                    }
-                                }
-                                nonebot_rs::api_resp::RespMessage::Private(p) => {
-                                    let replied_msg_content = p.message;
-                                    for seg in replied_msg_content.iter() {
-                                        match seg {
-                                            Message::Text(_) => text_count += 1,
-                                            Message::Image(_) => image_count += 1,
-                                            Message::At(_) => at_count += 1,
-                                            _ => other_count += 1,
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                Message::Reply(reply) => {
+                    let Ok(id) = reply.id.parse() else {
+                        continue;
+                    };
+                    if let Some(message) = matcher.get_msg(id).await {
+                        counts.add_all(replied_segments(&message));
                     }
                 }
-                _ => other_count += 1,
+                segment => counts.add(segment),
             }
         }
 
-        let reply = format!(
-            "Message Type Counts:\nText: {}\nImage: {}\nAt: {}\nOther: {}",
-            text_count, image_count, at_count, other_count
-        );
-
         matcher
-            .send(UniMessage::new().text(reply.as_str()).build())
+            .send(UniMessage::new().text(&counts.to_string()).build())
             .await;
     }
 }
 
+fn replied_segments(message: &RespMessage) -> &[Message] {
+    match message {
+        RespMessage::Group(g) => &g.message,
+        RespMessage::Private(p) => &p.message,
+    }
+}
+
 pub fn count_msg_types() -> Matcher<MessageEvent> {
-    Matcher::new("count_msg_types", CountMsgType {})
+    Matcher::new("count_msg_types", CountMsgTypes {})
         .add_rule(rules::is_superuser())
         .add_rule(rules::is_group_message_event())
 }

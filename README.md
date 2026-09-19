@@ -91,3 +91,29 @@ members = [
 
 ## 如何编写事件处理器？
 可以阅读`bot_example`下的代码，这里面已经涵盖了大多事件的编写方法
+
+`Handler<E>` 可针对 `Event`、`MessageEvent`、`NoticeEvent`、`RequestEvent`、`MetaEvent` 任意一层实现，通过 `Matchers` 的 `add_message_matcher`、`add_notice_matcher`、`add_request_matcher`、`add_meta_matcher`、`add_event_matcher` 注册。
+
+`Handler` 带有关联类型 `Target`：`match_` 返回 `Option<Target>`，`handle` 直接收到 `Target`，因此可以把子事件作为 `Target` 来避免在 handle 里手动解包：
+
+```rust
+#[async_trait]
+impl Handler<NoticeEvent> for EssenceTest {
+    on_notice!(Essence); // Target = EssenceNoticeEvent
+
+    async fn handle(&self, event: EssenceNoticeEvent, matcher: Matcher<NoticeEvent>) {
+        event!(Level::INFO, "群 {} 的精华变更", event.group_id);
+    }
+}
+```
+
+## 细粒度事件匹配
+
+- **类型细化**：`on_notice!(Essence)`、`on_private_message!()`、`on_group_message!()` 会把 `Target` 细化为对应子事件类型，handle 免解包；`on_message!` / `on_command!` / `on_start_with!` 的 `Target` 与 `E` 相同
+- **rule 过滤**：`rules::is_notice_type("essence")`、`rules::is_request_type("friend")` 等可在不细化类型时过滤子类型
+- **任意粒度**：实现 `Handler<Event>`，用 `on_event!(Event::Notice(NoticeEvent::Essence(_)))` 或手写 `match_` 匹配任意事件，通过 `add_event_matcher` 注册
+  - event 层最先匹配，`block = true`（默认）时不再进入 message/notice 等分类 matcher；`set_block(false)` 则匹配后继续传递
+  - `Matcher<Event>` 的 `send` 会按事件类型自动选择群聊/私聊发送
+- **自发消息**：`message_sent` 默认不进入任何 matcher，需要处理时在 Handler 中重写 `fn match_message_sent(&self) -> bool { true }`
+
+示例见 `bot_example/src/fine_event_test.rs`，流程细节见 `docs/message_flow.md`。

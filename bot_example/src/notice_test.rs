@@ -1,7 +1,9 @@
 use nonebot_rs::message::UniMessage;
 use builtin_plugins::matcher::prelude::*;
-use tracing::{Level, event};
-// 测试notice事件是否能响应
+// 测试 notice 事件是否能响应
+//
+// 这里演示在一个 Handler 内用 match 处理多种通知类型；
+// 若只关心单一子类型，可用 on_notice!(Essence) 把 Target 细化，handle 免解包（参见 fine_event_test.rs）
 
 #[doc(hidden)]
 #[derive(Clone)]

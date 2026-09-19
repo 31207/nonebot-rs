@@ -46,7 +46,7 @@ where
     /// 是否阻止事件向下一级传递
     pub block: bool,
     /// Matcher 接口函数与可配置项结构体
-    handler: Arc<RwLock<dyn Handler<E> + Sync + Send>>,
+    handler: Arc<RwLock<dyn DynHandler<E> + Sync + Send>>,
     /// 是否被禁用
     pub disable: bool,
     /// 是否为临时 Matcher
@@ -84,21 +84,95 @@ pub trait Handler<E>
 where
     E: Clone,
 {
+    /// `match_` 匹配成功后交给 `handle` 的具体事件类型
+    ///
+    /// 可以直接使用 `E`，也可以通过宏把子事件类型作为 `Target`，从而在 `handle` 中免去解包
+    type Target: Send + 'static;
+
     /// 新 Bot 连接时，调用该函数
     fn on_bot_connect(&self, _: Matcher<E>) {}
     /// Bot 断开连接时，调用该函数
     fn on_bot_disconnect(&self, _: Matcher<E>) {}
     /// timeout drop 函数
     fn timeout_drop(&self, _: &Matcher<E>) {}
-    /// 匹配函数
-    fn match_(&self, event: &mut E) -> bool;
+    /// 匹配函数，返回 `Some(Target)` 表示匹配成功
+    fn match_(&self, event: &mut E) -> Option<Self::Target>;
+    /// 是否接收机器人自己发送的消息事件（message_sent），默认不接收
+    fn match_message_sent(&self) -> bool {
+        false
+    }
     /// 处理函数
-    async fn handle(&self, event: E, matcher: Matcher<E>);
+    async fn handle(&self, event: Self::Target, matcher: Matcher<E>);
     /// Load config
     #[allow(unused_variables)]
     fn load_config(&mut self, config: HashMap<String, toml::Value>) {}
     /// 方法初始化函数
     async fn init(&self) {}
+}
+
+/// 擦除 `Handler::Target` 的对象安全 trait，用于 `Matcher` 内部存储
+#[doc(hidden)]
+#[async_trait]
+pub trait DynHandler<E>: Send + Sync
+where
+    E: Clone,
+{
+    fn match_dyn(&self, event: &mut E) -> Option<Box<dyn std::any::Any + Send>>;
+    async fn handle_dyn(&self, target: Box<dyn std::any::Any + Send>, matcher: Matcher<E>);
+    fn on_bot_connect_dyn(&self, matcher: Matcher<E>);
+    fn on_bot_disconnect_dyn(&self, matcher: Matcher<E>);
+    fn timeout_drop_dyn(&self, matcher: &Matcher<E>);
+    fn match_message_sent_dyn(&self) -> bool;
+    fn load_config_dyn(&mut self, config: HashMap<String, toml::Value>);
+    async fn init_dyn(&self);
+}
+
+#[async_trait]
+impl<E, H> DynHandler<E> for H
+where
+    E: Clone + Send + 'static,
+    H: Handler<E> + Send + Sync,
+    <H as Handler<E>>::Target: Send + 'static,
+{
+    fn match_dyn(&self, event: &mut E) -> Option<Box<dyn std::any::Any + Send>> {
+        self.match_(event)
+            .map(|target| Box::new(target) as Box<dyn std::any::Any + Send>)
+    }
+
+    async fn handle_dyn(&self, target: Box<dyn std::any::Any + Send>, matcher: Matcher<E>) {
+        match target.downcast::<<H as Handler<E>>::Target>() {
+            Ok(target) => self.handle(*target, matcher).await,
+            Err(_) => tracing::event!(
+                tracing::Level::ERROR,
+                "{}",
+                "Handler target downcast failed"
+            ),
+        }
+    }
+
+    fn on_bot_connect_dyn(&self, matcher: Matcher<E>) {
+        <H as Handler<E>>::on_bot_connect(self, matcher)
+    }
+
+    fn on_bot_disconnect_dyn(&self, matcher: Matcher<E>) {
+        <H as Handler<E>>::on_bot_disconnect(self, matcher)
+    }
+
+    fn timeout_drop_dyn(&self, matcher: &Matcher<E>) {
+        <H as Handler<E>>::timeout_drop(self, matcher)
+    }
+
+    fn match_message_sent_dyn(&self) -> bool {
+        <H as Handler<E>>::match_message_sent(self)
+    }
+
+    fn load_config_dyn(&mut self, config: HashMap<String, toml::Value>) {
+        <H as Handler<E>>::load_config(self, config)
+    }
+
+    async fn init_dyn(&self) {
+        <H as Handler<E>>::init(self).await
+    }
 }
 
 impl<E> Matcher<E>
@@ -107,7 +181,9 @@ where
 {
     pub fn new<H>(name: &str, handler: H) -> Matcher<E>
     where
+        E: Send + 'static,
         H: Handler<E> + Sync + Send + 'static,
+        <H as Handler<E>>::Target: Send + 'static,
     {
         // 默认 Matcher
         Matcher {
@@ -167,7 +243,7 @@ where
                 matchers.remove_matcher(&self.name);
                 {
                     let handler = self.handler.read().await;
-                    handler.timeout_drop(&self);
+                    handler.timeout_drop_dyn(&self);
                 }
                 return false;
             }
@@ -183,14 +259,15 @@ where
         }
         {
             let handler = self.handler.read().await;
-            if !handler.match_(&mut event) {
-                return false;
-            }
+            let target = match handler.match_dyn(&mut event) {
+                Some(target) => target,
+                None => return false,
+            };
             let matcher = self.clone().set_event(&event);
             let handler = self.handler.clone();
             tokio::spawn(async move {
                 let handler = handler.read().await;
-                handler.handle(event, matcher).await
+                handler.handle_dyn(target, matcher).await
             });
         }
         return true;
@@ -257,14 +334,14 @@ where
     }
 
     /// 获取 handler
-    pub fn get_handler(&self) -> &Arc<RwLock<dyn Handler<E> + Sync + Send>> {
+    pub fn get_handler(&self) -> &Arc<RwLock<dyn DynHandler<E> + Sync + Send>> {
         &self.handler
     }
 
     /// 设置 handler
     pub fn set_handler(
         &mut self,
-        handler: Arc<RwLock<dyn Handler<E> + Sync + Send>>,
+        handler: Arc<RwLock<dyn DynHandler<E> + Sync + Send>>,
     ) -> Matcher<E> {
         self.handler = handler;
         self.clone()

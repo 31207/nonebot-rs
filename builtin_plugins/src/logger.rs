@@ -41,6 +41,30 @@ pub fn message_logger(event: &MessageEvent) {
     }
 }
 
+/// Message Sent Event Logger
+pub fn message_sent_logger(event: &MessageEvent) {
+    match &event {
+        MessageEvent::Private(p) => {
+            event!(
+                Level::INFO,
+                "[{}] Bot -> {} -> {}",
+                p.self_id.red(),
+                p.sender.nickname.blue(),
+                p.raw_message,
+            )
+        }
+        MessageEvent::Group(g) => {
+            event!(
+                Level::INFO,
+                "{} [{}] Bot -> {}",
+                g.group_id.magenta(),
+                g.self_id.red(),
+                g.raw_message,
+            )
+        }
+    }
+}
+
 /// Meta Event Logger
 pub fn meta_logger(event: &MetaEvent) {
     if &event.meta_event_type == "heartbeat" {
@@ -211,6 +235,35 @@ pub fn notice_logger(event: &NoticeEvent) {
                 g.file.size.to_string().blue(),
             );
         }
+        NoticeEvent::Essence(e) => {
+            event!(
+                Level::INFO,
+                "{} [{}] -> {}把消息({}){}了精华",
+                e.group_id.magenta(),
+                e.self_id.red(),
+                e.operator_id.yellow(),
+                e.message_id.to_string().blue(),
+                if e.sub_type == "add" { "设" } else { "取消" },
+            );
+        }
+        NoticeEvent::FriendAdd(f) => {
+            event!(
+                Level::INFO,
+                "[{}] -> 新好友 {}",
+                f.self_id.red(),
+                f.user_id.green(),
+            );
+        }
+        NoticeEvent::GroupAdmin(g) => {
+            event!(
+                Level::INFO,
+                "{} [{}] -> {}{}了管理员",
+                g.group_id.magenta(),
+                g.self_id.red(),
+                g.user_id.green(),
+                if g.sub_type == "set" { "被设置" } else { "被取消" },
+            );
+        }
     }
 }
 
@@ -234,6 +287,7 @@ impl Logger {
         while let Ok(event) = event_receiver.recv().await {
             match &event {
                 Event::Message(m) if self.message_logger_enable => message_logger(m),
+                Event::MessageSent(m) if self.message_logger_enable => message_sent_logger(m),
                 Event::Notice(m) if self.notice_logger_enable => notice_logger(m),
                 Event::Meta(m) if self.meta_logger_enable => meta_logger(m),
                 _ => {}

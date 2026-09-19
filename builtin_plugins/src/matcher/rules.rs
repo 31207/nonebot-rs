@@ -1,6 +1,6 @@
 use nonebot_rs::config::BotConfig;
 use nonebot_rs::event::MessageEvent;
-use nonebot_rs::event::{SelfId, UserId};
+use nonebot_rs::event::{NoticeEvent, RequestEvent, SelfId, UserId};
 use crate::matcher::Rule;
 use std::sync::Arc;
 
@@ -112,6 +112,24 @@ pub fn is_group_message_event() -> Rule<MessageEvent> {
     Arc::new(is_group_message_event)
 }
 
+/// 判定 notice 是否为指定 notice_type（如 "essence"、"group_admin"）
+pub fn is_notice_type(notice_type: &str) -> Rule<NoticeEvent> {
+    let notice_type = notice_type.to_string();
+    let is_notice_type = move |event: &NoticeEvent, _: &BotConfig| -> bool {
+        event.get_notice_type() == notice_type
+    };
+    Arc::new(is_notice_type)
+}
+
+/// 判定 request 是否为指定 request_type（如 "friend"、"group"）
+pub fn is_request_type(request_type: &str) -> Rule<RequestEvent> {
+    let request_type = request_type.to_string();
+    let is_request_type = move |event: &RequestEvent, _: &BotConfig| -> bool {
+        event.request_type == request_type
+    };
+    Arc::new(is_request_type)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,6 +158,33 @@ mod tests {
 
         config.superusers = vec!["456".to_string()];
         assert!(!rule(&mock, &config));
+    }
+
+    #[test]
+    fn test_is_notice_type() {
+        let json = r#"{"time":1,"self_id":1,"post_type":"notice","notice_type":"essence","message_id":1,"sender_id":2,"sub_type":"add","group_id":3,"user_id":2,"operator_id":2}"#;
+        let event = match serde_json::from_str::<nonebot_rs::event::Event>(json).unwrap() {
+            nonebot_rs::event::Event::Notice(n) => n,
+            _ => panic!("expected notice event"),
+        };
+        assert!(is_notice_type("essence")(&event, &BotConfig::default()));
+        assert!(!is_notice_type("friend_add")(&event, &BotConfig::default()));
+    }
+
+    #[test]
+    fn test_is_request_type() {
+        let event = RequestEvent {
+            time: 0,
+            self_id: String::new(),
+            request_type: "friend".to_string(),
+            user_id: String::new(),
+            comment: String::new(),
+            flag: String::new(),
+            sub_type: None,
+            group_id: None,
+        };
+        assert!(is_request_type("friend")(&event, &BotConfig::default()));
+        assert!(!is_request_type("group")(&event, &BotConfig::default()));
     }
 
     #[test]
