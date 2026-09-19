@@ -271,14 +271,23 @@ pub struct NotifyNoticeEvent {
     /// 事件子类型
     pub sub_type: Option<String>,
     /// 发送者 ID
-    #[serde(deserialize_with = "id_deserializer")]
-    pub user_id: String,
+    #[serde(default, deserialize_with = "option_id_deserializer")]
+    pub user_id: Option<String>,
     /// 被戳者 ID
     #[serde(default, deserialize_with = "option_id_deserializer")]
     pub target_id: Option<String>,
     /// 群号
     #[serde(default, deserialize_with = "option_id_deserializer")]
     pub group_id: Option<String>,
+    /// 操作者 ID (sub_type = "profile_like" 时)
+    #[serde(default, deserialize_with = "option_id_deserializer")]
+    pub operator_id: Option<String>,
+    /// 操作者昵称 (sub_type = "profile_like" 时)
+    #[serde(default)]
+    pub operator_nick: Option<String>,
+    /// 点赞次数 (sub_type = "profile_like" 时)
+    #[serde(default)]
+    pub times: Option<i64>,
     /// 原始json数据
     #[serde(default)]
     pub raw_info: Option<serde_json::Value>,
@@ -804,9 +813,26 @@ fn de_title_notify_event() {
             assert_eq!(n.sub_type.as_deref(), Some("title"));
             assert_eq!(n.title.as_deref(), Some("前会长"));
             assert_eq!(n.group_id.as_deref(), Some("593888649"));
+            assert_eq!(n.user_id.as_deref(), Some("1428378600"));
             assert!(n.target_id.is_none());
         }
         _ => panic!("expected notify title notice event"),
+    }
+}
+
+#[test]
+fn de_profile_like_notify_event() {
+    let json = r#"{"time":1789812789,"self_id":1692038362,"post_type":"notice","notice_type":"notify","sub_type":"profile_like","operator_id":516965699,"operator_nick":"施君纹吉","times":5}"#;
+    let event: Event = serde_json::from_str(json).unwrap();
+    match event {
+        Event::Notice(NoticeEvent::Notify(n)) => {
+            assert_eq!(n.sub_type.as_deref(), Some("profile_like"));
+            assert_eq!(n.operator_id.as_deref(), Some("516965699"));
+            assert_eq!(n.operator_nick.as_deref(), Some("施君纹吉"));
+            assert_eq!(n.times, Some(5));
+            assert!(n.user_id.is_none());
+        }
+        _ => panic!("expected profile_like notify event"),
     }
 }
 
@@ -917,7 +943,11 @@ impl UserId for MessageEvent {
 impl UserId for NoticeEvent {
     fn get_user_id(&self) -> String {
         match self {
-            NoticeEvent::Notify(n) => n.user_id.clone(),
+            NoticeEvent::Notify(n) => n
+                .user_id
+                .clone()
+                .or_else(|| n.operator_id.clone())
+                .unwrap_or_default(),
             NoticeEvent::FriendRecall(f) => f.user_id.clone(),
             NoticeEvent::GroupRecall(g) => g.user_id.clone(),
             NoticeEvent::GroupIncrease(g) => g.user_id.clone(),

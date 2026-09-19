@@ -75,14 +75,26 @@ pub fn meta_logger(event: &MetaEvent) {
 pub fn notice_logger(event: &NoticeEvent) {
     match event {
         NoticeEvent::Notify(n) => {
+            let user_id = n.user_id.as_deref().unwrap_or("");
             if n.sub_type.as_deref() == Some("title") {
                 event!(
                     Level::INFO,
                     "{} [{}] -> {}获得专属头衔 {}",
                     n.group_id.as_deref().unwrap_or("").magenta(),
                     n.self_id.red(),
-                    n.user_id.green(),
+                    user_id.green(),
                     n.title.as_deref().unwrap_or("").yellow(),
+                );
+                return;
+            }
+            if n.sub_type.as_deref() == Some("profile_like") {
+                event!(
+                    Level::INFO,
+                    "[{}] -> {}({}) 赞了你的资料卡 {} 次",
+                    n.self_id.red(),
+                    n.operator_nick.as_deref().unwrap_or("").blue(),
+                    n.operator_id.as_deref().unwrap_or("").green(),
+                    n.times.unwrap_or(0).to_string().yellow(),
                 );
                 return;
             }
@@ -92,7 +104,7 @@ pub fn notice_logger(event: &NoticeEvent) {
                     "{} [{}] -> {} 戳了戳 {}",
                     group_id.magenta(),
                     n.self_id.red(),
-                    n.user_id.green(),
+                    user_id.green(),
                     n.target_id.as_deref().unwrap_or("").blue(),
                 );
             } else {
@@ -100,7 +112,7 @@ pub fn notice_logger(event: &NoticeEvent) {
                     Level::INFO,
                     "[{}] -> {} 戳了戳你",
                     n.self_id.red(),
-                    n.user_id.green(),
+                    user_id.green(),
                 );
             }
         }

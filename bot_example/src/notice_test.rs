@@ -19,7 +19,13 @@ impl Handler<NoticeEvent> for NoticeTest {
                 matcher
                     .send(
                         UniMessage::new()
-                            .text(format!("收到通知事件: {}", m.user_id).as_str())
+                            .text(
+                                format!(
+                                    "收到通知事件: {}",
+                                    m.user_id.as_deref().unwrap_or("")
+                                )
+                                .as_str(),
+                            )
                             .build(),
                     )
                     .await;

@@ -94,9 +94,14 @@ impl Bot {
         match event {
             NoticeEvent::Notify(n) => {
                 if let Some(group_id) = &n.group_id {
-                    self.send_group_msg(&group_id.as_str(), msg).await;
+                    self.send_group_msg(group_id, msg).await;
                 } else {
-                    self.send_private_msg(&n.user_id.as_str(), msg).await;
+                    let user_id = n
+                        .user_id
+                        .as_deref()
+                        .or(n.operator_id.as_deref())
+                        .unwrap_or("");
+                    self.send_private_msg(user_id, msg).await;
                 }
             }
             NoticeEvent::FriendRecall(f) => self.send_private_msg(&f.user_id, msg).await,
