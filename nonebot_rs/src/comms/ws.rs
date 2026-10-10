@@ -11,7 +11,10 @@ use tokio::{
 };
 use tracing::{event, Level};
 
-use tokio_tungstenite::{client_async, tungstenite::handshake::client::Request};
+use tokio_tungstenite::{
+    client_async,
+    tungstenite::{handshake::client::Request, Message as TuMessage},
+};
 
 pub async fn run(
     url: String,
@@ -84,57 +87,66 @@ pub async fn single_socket(
             // let headers = resp.headers();
             // println!("{:?}", headers);
             if let Some(data) = stream.next().await {
-                match data {
-                    Ok(msg) => {
-                        let msg = msg.to_text().unwrap_or("");
-                        let items = match adapter.parse_frame(msg) {
-                            Ok(items) => items,
-                            Err(e) => {
-                                event!(
-                                    Level::WARN,
-                                    "适配器 [{}] 解析首帧失败: {}",
-                                    adapter.name(),
-                                    e
-                                );
-                                return;
-                            }
-                        };
-                        let Some(RecvItem::Event(event)) = items
-                            .into_iter()
-                            .find(|item| matches!(item, RecvItem::Event(_)))
-                        else {
-                            event!(Level::WARN, "首帧中未找到事件，无法识别 Bot");
+                let raw = match data {
+                    Ok(TuMessage::Text(text)) => text,
+                    Ok(TuMessage::Binary(bytes)) => match String::from_utf8(bytes) {
+                        Ok(text) => text,
+                        Err(_) => {
+                            event!(Level::WARN, "首帧为非 UTF-8 二进制帧，无法识别 Bot");
                             return;
-                        };
-                        let bot_id = event.get_self_id();
-
-                        event!(Level::INFO, "Connectted to Bot {} Server", bot_id.red());
-
-                        // add bot to Nonebot
-                        action_sender
-                            .send(crate::Action::AddBot {
-                                bot_id: bot_id.clone(),
-                                api_sender: sender,
-                                action_sender: action_sender.clone(),
-                                api_resp_watcher: api_resp_watcher,
-                            })
-                            .await
-                            .ok();
-
-                        // handle WebSocketStream
-                        handler_web_socket(
-                            stream,
-                            event_sender,
-                            action_sender,
-                            apiresp_watch_sender,
-                            receiver,
-                            bot_id,
-                            adapter,
-                        )
-                        .await;
+                        }
+                    },
+                    Ok(_) => {
+                        event!(Level::WARN, "首帧为控制帧，无法识别 Bot");
+                        return;
                     }
-                    Err(_) => {}
-                }
+                    Err(_) => return,
+                };
+                let items = match adapter.parse_frame(&raw) {
+                    Ok(items) => items,
+                    Err(e) => {
+                        event!(
+                            Level::WARN,
+                            "适配器 [{}] 解析首帧失败: {}",
+                            adapter.name(),
+                            e
+                        );
+                        return;
+                    }
+                };
+                let Some(RecvItem::Event(event)) = items
+                    .into_iter()
+                    .find(|item| matches!(item, RecvItem::Event(_)))
+                else {
+                    event!(Level::WARN, "首帧中未找到事件，无法识别 Bot");
+                    return;
+                };
+                let bot_id = event.get_self_id();
+
+                event!(Level::INFO, "Connectted to Bot {} Server", bot_id.red());
+
+                // add bot to Nonebot
+                action_sender
+                    .send(crate::Action::AddBot {
+                        bot_id: bot_id.clone(),
+                        api_sender: sender,
+                        action_sender: action_sender.clone(),
+                        api_resp_watcher: api_resp_watcher,
+                    })
+                    .await
+                    .ok();
+
+                // handle WebSocketStream
+                handler_web_socket(
+                    stream,
+                    event_sender,
+                    action_sender,
+                    apiresp_watch_sender,
+                    receiver,
+                    bot_id,
+                    adapter,
+                )
+                .await;
             }
         }
         Err(_) => {}

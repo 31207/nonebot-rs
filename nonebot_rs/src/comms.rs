@@ -12,7 +12,7 @@ pub async fn strat_comms(nb: &crate::Nonebot) {
             nb.event_sender.clone(),
             nb.action_sender.clone(),
             access_token.clone(),
-            nb.default_adapter(),
+            nb.get_adapter(&ws_server_config.adapter),
         ));
     }
 

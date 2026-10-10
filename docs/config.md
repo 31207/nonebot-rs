@@ -17,6 +17,7 @@ command_starts = ["/", "#"]                           # 命令前缀
 host = "0.0.0.0"
 port = 8088
 access_token = "token"
+adapter = "onebot_v11"                                # 协议适配器名称，默认 onebot_v11
 
 [bots]                                                # Bot 独立配置
 [bots.123456]                                         # bot_id 为节名
@@ -92,7 +93,7 @@ JSON 细节不同，由 [`nonebot_rs::adapter`] 中的 `Adapter` trait 统一处
   忽略 llonebot/NapCat 的 JSON 差异（字段缺失、ID 数字/字符串混用、CQ 字符串与消息段数组、
   未知消息段保留为 `Message::Unknown` 等）
 - 正向 WS：按 `[bots.*].adapter` 选择适配器，未注册时回退默认适配器并告警
-- 反向 WS：使用 `Nonebot::default_adapter()`，可通过 `set_default_adapter()` 修改
+- 反向 WS：按 `[ws_server].adapter` 选择适配器，可通过 `set_default_adapter()` 修改默认值
 - 注册自定义适配器：`Nonebot::add_adapter(adapter)`（`nb.rs`）
 
 ## 读取流程

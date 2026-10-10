@@ -48,6 +48,9 @@ pub struct WebSocketServerConfig {
     #[serde(alias = "access-token")]
     #[serde(default)]
     access_token: String,
+    /// 协议适配器名称
+    #[serde(default = "default_adapter")]
+    pub adapter: String,
 }
 
 /// nbrs 全局配置
@@ -130,6 +133,7 @@ impl Default for NbConfig {
                 host: std::net::Ipv4Addr::new(127, 0, 0, 1),
                 port: 8088,
                 access_token: String::default(),
+                adapter: default_adapter(),
             }),
         }
     }

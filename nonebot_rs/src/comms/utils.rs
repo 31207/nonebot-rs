@@ -95,53 +95,72 @@ async fn stream_recv(
     adapter: Arc<dyn Adapter>,
 ) -> Option<SplitStream<WebSocketStream<TcpStream>>> {
     let (msg, next_stream) = stream.into_future().await;
-    if let Some(msg) = msg {
-        use crate::event::RecvItem;
-        if let Ok(msg) = msg {
-            // println!("{}",msg.to_text().unwrap());
-            let raw = msg.to_text().unwrap_or("");
-            match adapter.parse_frame(raw) {
-                Ok(items) => {
-                    for item in items {
-                        match item {
-                            RecvItem::Event(event) => send_event(event_sender, event).await,
-                            RecvItem::ApiResp(api_resp) => {
-                                let _ = apiresp_watch_sender.send(api_resp);
-                            }
-                        }
+    // 仅文本/二进制帧承载 OneBot 消息，其余控制帧直接跳过
+    let raw = match msg {
+        Some(Ok(TuMessage::Text(text))) => text,
+        Some(Ok(TuMessage::Binary(bytes))) => match String::from_utf8(bytes) {
+            Ok(text) => text,
+            Err(_) => {
+                event!(Level::WARN, "Bot [{}] 收到非 UTF-8 二进制帧，已忽略", bot_id.red());
+                return Some(next_stream);
+            }
+        },
+        Some(Ok(TuMessage::Ping(_))) | Some(Ok(TuMessage::Pong(_))) => {
+            return Some(next_stream);
+        }
+        Some(Ok(_)) | None => {
+            disconnect(action_sender, &bot_id).await;
+            return None;
+        }
+        Some(Err(_)) => {
+            disconnect(action_sender, &bot_id).await;
+            return None;
+        }
+    };
+
+    use crate::event::RecvItem;
+    match adapter.parse_frame(&raw) {
+        Ok(items) => {
+            for item in items {
+                match item {
+                    RecvItem::Event(event) => send_event(event_sender, event).await,
+                    RecvItem::ApiResp(api_resp) => {
+                        let _ = apiresp_watch_sender.send(api_resp);
                     }
-                }
-                Err(e) => {
-                    match e.kind {
-                        AdapterErrorKind::Malformed => {
-                            event!(Level::ERROR, "Discard message: {}\nRaw: {}", e, raw)
-                        }
-                        AdapterErrorKind::Unsupported | AdapterErrorKind::Decode => {
-                            event!(Level::WARN, "Discard message: {}\nRaw: {}", e, raw)
-                        }
-                    }
-                    if crate::config::debug_enabled() {
-                        use std::io::Write;
-                        std::fs::OpenOptions::new()
-                            .create(true)
-                            .append(true)
-                            .open("error_msg.txt")
-                            .and_then(|mut f| writeln!(f, "{}", raw))
-                            .ok();
-                    }
-                    //std::process::exit(101);
                 }
             }
-        } else {
-            event!(Level::WARN, "Bot [{}] disconnect", bot_id.to_string().red());
-            action_sender
-                .send(crate::Action::RemoveBot { bot_id: bot_id })
-                .await
-                .ok();
-            return None;
+        }
+        Err(e) => {
+            match e.kind {
+                AdapterErrorKind::Malformed => {
+                    event!(Level::ERROR, "Discard message: {}\nRaw: {}", e, raw)
+                }
+                AdapterErrorKind::Unsupported | AdapterErrorKind::Decode => {
+                    event!(Level::WARN, "Discard message: {}\nRaw: {}", e, raw)
+                }
+            }
+            if crate::config::debug_enabled() {
+                use std::io::Write;
+                std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("error_msg.txt")
+                    .and_then(|mut f| writeln!(f, "{}", raw))
+                    .ok();
+            }
         }
     }
     Some(next_stream)
+}
+
+async fn disconnect(action_sender: &ActionSender, bot_id: &str) {
+    event!(Level::WARN, "Bot [{}] disconnect", bot_id.red());
+    action_sender
+        .send(crate::Action::RemoveBot {
+            bot_id: bot_id.to_string(),
+        })
+        .await
+        .ok();
 }
 
 pub async fn send_event(sender: &broadcast::Sender<Event>, e: Event) {
