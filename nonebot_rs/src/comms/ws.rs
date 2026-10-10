@@ -1,7 +1,10 @@
 use super::utils::handler_web_socket;
-use crate::{event::Event, event::SelfId, ActionSender, EventSender};
+use crate::adapter::Adapter;
+use crate::event::{RecvItem, SelfId};
+use crate::{ActionSender, EventSender};
 use colored::*;
 use futures_util::StreamExt;
+use std::sync::Arc;
 use tokio::{
     net::TcpStream,
     sync::{mpsc, watch},
@@ -16,6 +19,7 @@ pub async fn run(
     event_sender: EventSender,
     action_sender: ActionSender,
     access_token: crate::config::AccessToken,
+    adapter: Arc<dyn Adapter>,
 ) {
     loop {
         single_socket(
@@ -24,6 +28,7 @@ pub async fn run(
             event_sender.clone(),
             action_sender.clone(),
             access_token.clone(),
+            adapter.clone(),
         )
         .await;
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
@@ -36,6 +41,7 @@ pub async fn single_socket(
     event_sender: EventSender,
     action_sender: ActionSender,
     access_token: crate::config::AccessToken,
+    adapter: Arc<dyn Adapter>,
 ) -> () {
     let req = Request::builder()
         .uri(url)
@@ -81,33 +87,51 @@ pub async fn single_socket(
                 match data {
                     Ok(msg) => {
                         let msg = msg.to_text().unwrap_or("");
-                        if let Ok(event) = serde_json::from_str::<Event>(msg) {
-                            let bot_id = event.get_self_id();
+                        let items = match adapter.parse_frame(msg) {
+                            Ok(items) => items,
+                            Err(e) => {
+                                event!(
+                                    Level::WARN,
+                                    "适配器 [{}] 解析首帧失败: {}",
+                                    adapter.name(),
+                                    e
+                                );
+                                return;
+                            }
+                        };
+                        let Some(RecvItem::Event(event)) = items
+                            .into_iter()
+                            .find(|item| matches!(item, RecvItem::Event(_)))
+                        else {
+                            event!(Level::WARN, "首帧中未找到事件，无法识别 Bot");
+                            return;
+                        };
+                        let bot_id = event.get_self_id();
 
-                            event!(Level::INFO, "Connectted to Bot {} Server", bot_id.red());
+                        event!(Level::INFO, "Connectted to Bot {} Server", bot_id.red());
 
-                            // add bot to Nonebot
-                            action_sender
-                                .send(crate::Action::AddBot {
-                                    bot_id: bot_id.clone(),
-                                    api_sender: sender,
-                                    action_sender: action_sender.clone(),
-                                    api_resp_watcher: api_resp_watcher,
-                                })
-                                .await
-                                .ok();
+                        // add bot to Nonebot
+                        action_sender
+                            .send(crate::Action::AddBot {
+                                bot_id: bot_id.clone(),
+                                api_sender: sender,
+                                action_sender: action_sender.clone(),
+                                api_resp_watcher: api_resp_watcher,
+                            })
+                            .await
+                            .ok();
 
-                            // handle WebSocketStream
-                            handler_web_socket(
-                                stream,
-                                event_sender,
-                                action_sender,
-                                apiresp_watch_sender,
-                                receiver,
-                                bot_id,
-                            )
-                            .await;
-                        }
+                        // handle WebSocketStream
+                        handler_web_socket(
+                            stream,
+                            event_sender,
+                            action_sender,
+                            apiresp_watch_sender,
+                            receiver,
+                            bot_id,
+                            adapter,
+                        )
+                        .await;
                     }
                     Err(_) => {}
                 }

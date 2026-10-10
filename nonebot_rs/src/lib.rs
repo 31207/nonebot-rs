@@ -7,6 +7,8 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 mod action;
+/// 协议适配器
+pub mod adapter;
 /// Onebot Api
 pub mod api;
 mod api_list;
@@ -29,10 +31,15 @@ pub mod plugin;
 pub mod utils;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, watch};
 
 #[doc(inline)]
 pub use action::Action;
+#[doc(inline)]
+pub use adapter::{Adapter, AdapterError, AdapterErrorKind};
+#[doc(inline)]
+pub use adapter::onebot11::OneBotV11Adapter;
 #[doc(inline)]
 pub use api_resp::{ApiResp, RespData};
 pub use async_trait::async_trait;
@@ -92,6 +99,10 @@ pub struct Nonebot {
     shutdown_rx: ShutdownReceiver,
     /// event handler
     plugins: HashMap<String, Box<dyn Plugin + Send + Sync>>,
+    /// 已注册的协议适配器，名称 -> 适配器
+    pub adapters: HashMap<String, Arc<dyn Adapter>>,
+    /// 默认适配器名称，反向 WS 等无法从配置区分来源的连接使用
+    pub default_adapter_name: String,
 }
 
 /// api channel 传递项

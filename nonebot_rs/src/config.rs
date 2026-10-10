@@ -68,12 +68,20 @@ pub struct GlobalConfig {
     pub command_starts: Vec<String>,
 }
 
+/// 默认协议适配器名称
+pub fn default_adapter() -> String {
+    crate::adapter::onebot11::ADAPTER_NAME.to_string()
+}
+
 /// nbrs bot 配置
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BotConfig {
     /// bot id
     #[serde(skip)]
     pub bot_id: String,
+    /// 协议适配器名称
+    #[serde(default = "default_adapter")]
+    pub adapter: String,
     /// 管理员账号设置
     #[serde(default)]
     pub superusers: Vec<String>,
@@ -95,6 +103,7 @@ impl Default for BotConfig {
     fn default() -> Self {
         BotConfig {
             bot_id: String::new(),
+            adapter: default_adapter(),
             superusers: vec![],
             nicknames: vec![],
             command_starts: vec![],
@@ -175,6 +184,7 @@ impl NbConfig {
     pub fn gen_bot_config(&self, bot_id: &str) -> BotConfig {
         let mut rbotconfig = BotConfig {
             bot_id: bot_id.to_string(),
+            adapter: default_adapter(),
             superusers: self.global.superusers.clone(),
             nicknames: self.global.nicknames.clone(),
             command_starts: self.global.command_starts.clone(),
@@ -188,6 +198,7 @@ impl NbConfig {
 
         if let Some(bots_config) = &self.bots {
             if let Some(bot_config) = bots_config.get(bot_id) {
+                rbotconfig.adapter = bot_config.adapter.clone();
                 if !bot_config.superusers.is_empty() {
                     rbotconfig.superusers = bot_config.superusers.clone();
                 }

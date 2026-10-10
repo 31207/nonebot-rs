@@ -20,6 +20,7 @@ access_token = "token"
 
 [bots]                                                # Bot 独立配置
 [bots.123456]                                         # bot_id 为节名
+adapter = "onebot_v11"                                # 协议适配器名称，默认 onebot_v11
 superusers = ["789012"]                               # 覆盖全局的超级管理员
 nicknames = ["专属昵称"]                                # 覆盖全局的昵称
 command_starts = ["!"]                                # 覆盖全局的命令前缀
@@ -72,6 +73,7 @@ pub struct GlobalConfig {
 
 pub struct BotConfig {
     pub bot_id: String,                              // #[serde(skip)] 运行时填充
+    pub adapter: String,                             // #[serde(default)] 默认 "onebot_v11"
     pub superusers: Vec<String>,                    // #[serde(default)] 空则继承全局
     pub nicknames: Vec<String>,
     pub command_starts: Vec<String>,
@@ -79,6 +81,19 @@ pub struct BotConfig {
     pub ws_server: String,                           // 非空才启动正向 WS
 }
 ```
+
+### 协议适配器（`adapter` 字段）
+
+不同消息源（llonebot/NapCat 等 OneBot 实现，以及未来 QQ 官方 Bot、Telegram 等）的
+JSON 细节不同，由 [`nonebot_rs::adapter`] 中的 `Adapter` trait 统一处理：入站把原始帧
+解析为内部统一事件，出站把内部 `Api` 编码为协议线上 JSON，反向 WS 握手校验也交由适配器。
+
+- 内置适配器：`onebot_v11`（默认），针对 OneBot 11 主要部分做宽松解析，
+  忽略 llonebot/NapCat 的 JSON 差异（字段缺失、ID 数字/字符串混用、CQ 字符串与消息段数组、
+  未知消息段保留为 `Message::Unknown` 等）
+- 正向 WS：按 `[bots.*].adapter` 选择适配器，未注册时回退默认适配器并告警
+- 反向 WS：使用 `Nonebot::default_adapter()`，可通过 `set_default_adapter()` 修改
+- 注册自定义适配器：`Nonebot::add_adapter(adapter)`（`nb.rs`）
 
 ## 读取流程
 

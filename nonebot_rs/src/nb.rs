@@ -1,5 +1,7 @@
-use crate::{ActionSender, ApiChannelItem, ApiResp, Bot, Nonebot, Plugin};
+use crate::adapter::onebot11::OneBotV11Adapter;
+use crate::{ActionSender, Adapter, ApiChannelItem, ApiResp, Bot, Nonebot, Plugin};
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, watch};
 
 impl Nonebot {
@@ -39,6 +41,9 @@ impl Nonebot {
         let (action_sender, action_receiver) = tokio::sync::mpsc::channel(32);
         let (bot_sender, bot_getter) = watch::channel(HashMap::new());
         let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
+        let mut adapters: HashMap<String, Arc<dyn Adapter>> = HashMap::new();
+        let onebot11 = OneBotV11Adapter;
+        adapters.insert(onebot11.name().to_string(), Arc::new(onebot11));
         Nonebot {
             bots: HashMap::new(),
             config: nb_config,
@@ -50,7 +55,49 @@ impl Nonebot {
             shutdown_tx,
             shutdown_rx,
             plugins: HashMap::new(),
+            adapters,
+            default_adapter_name: OneBotV11Adapter.name().to_string(),
         }
+    }
+
+    /// 注册协议适配器，同名覆盖
+    pub fn add_adapter<A: Adapter + 'static>(&mut self, adapter: A) {
+        self.adapters
+            .insert(adapter.name().to_string(), Arc::new(adapter));
+    }
+
+    /// 设置默认适配器，名称不存在时返回 false
+    pub fn set_default_adapter(&mut self, name: &str) -> bool {
+        if self.adapters.contains_key(name) {
+            self.default_adapter_name = name.to_string();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// 按名称获取适配器，未注册时回退默认适配器并记录警告
+    pub fn get_adapter(&self, name: &str) -> Arc<dyn Adapter> {
+        if let Some(adapter) = self.adapters.get(name) {
+            return adapter.clone();
+        }
+        if !name.is_empty() && name != self.default_adapter_name {
+            tracing::event!(
+                tracing::Level::WARN,
+                "未注册的适配器 [{}]，回退默认适配器 [{}]",
+                name,
+                self.default_adapter_name
+            );
+        }
+        self.default_adapter()
+    }
+
+    /// 获取默认适配器
+    pub fn default_adapter(&self) -> Arc<dyn Adapter> {
+        self.adapters
+            .get(&self.default_adapter_name)
+            .cloned()
+            .unwrap_or_else(|| Arc::new(OneBotV11Adapter))
     }
 
     /// 添加 Plugin

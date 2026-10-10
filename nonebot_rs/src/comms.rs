@@ -12,18 +12,21 @@ pub async fn strat_comms(nb: &crate::Nonebot) {
             nb.event_sender.clone(),
             nb.action_sender.clone(),
             access_token.clone(),
+            nb.default_adapter(),
         ));
     }
 
     if let Some(bots) = &nb.config.bots {
         for (bot_id, bot_config) in bots {
             if !bot_config.ws_server.is_empty() {
+                let adapter = nb.get_adapter(&bot_config.adapter);
                 tokio::spawn(ws::run(
                     bot_config.ws_server.clone(),
                     bot_id.clone(),
                     nb.event_sender.clone(),
                     nb.action_sender.clone(),
                     access_token.clone(),
+                    adapter,
                 ));
             }
         }

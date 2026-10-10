@@ -1,6 +1,12 @@
-use crate::message::Message;
-use crate::utils::{id_deserializer, option_id_deserializer};
+use crate::message::{message_content_deserializer, Message};
+use crate::utils::{
+    id_deserializer, lenient_i32_deserializer, lenient_i64_deserializer, option_id_deserializer,
+};
 use serde::{Deserialize, Serialize};
+
+fn default_message_format() -> String {
+    "array".to_string()
+}
 
 /// WebSocket 接受数据枚举 Event || ApiResp
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -119,32 +125,42 @@ pub struct PrivateMessageEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 消息子类型
+    #[serde(default)]
     pub sub_type: String,
     /// 消息 ID
+    #[serde(default, deserialize_with = "lenient_i32_deserializer")]
     pub message_id: i32,
+    #[serde(default, deserialize_with = "lenient_i32_deserializer")]
     pub message_seq: i32,
     /// 发送者 ID
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// Array 消息内容
+    #[serde(default, deserialize_with = "message_content_deserializer")]
     pub message: Vec<Message>,
+    #[serde(default = "default_message_format")]
     pub message_format: String,
+    #[serde(default)]
     pub raw_pb: String,
     /// 原生消息内容
+    #[serde(default)]
     pub raw_message: String,
     /// 字体
+    #[serde(default)]
     pub font: i32,
     /// 发送者消息
+    #[serde(default)]
     pub sender: PrivateSender,
 }
 
 /// 私聊消息事件发送者
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct PrivateSender {
     /// 发送者 QQ 号
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 昵称
+    #[serde(default)]
     pub nickname: String,
 }
 
@@ -157,17 +173,23 @@ pub struct GroupMessageEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 消息子类型
+    #[serde(default)]
     pub sub_type: String,
     /// 消息 ID
+    #[serde(default, deserialize_with = "lenient_i32_deserializer")]
     pub message_id: i32,
     /// ???
+    #[serde(default, deserialize_with = "lenient_i32_deserializer")]
     pub message_seq: i32,
+    #[serde(default = "default_message_format")]
     pub message_format: String,
+    #[serde(default)]
     pub raw_pb: String,
 
     /// 群消息群号
     #[serde(deserialize_with = "id_deserializer")]
     pub group_id: String,
+    #[serde(default)]
     pub group_name: String,
     /// 发送者 ID
     #[serde(deserialize_with = "id_deserializer")]
@@ -175,24 +197,30 @@ pub struct GroupMessageEvent {
     /// 匿名消息 非匿名消息为空
     pub anonymous: Option<Anonymous>,
     /// Array 消息内容
+    #[serde(default, deserialize_with = "message_content_deserializer")]
     pub message: Vec<Message>,
     /// 原生消息内容
+    #[serde(default)]
     pub raw_message: String,
     /// 字体
+    #[serde(default)]
     pub font: i32,
     /// 发送者消息
+    #[serde(default)]
     pub sender: GroupSender,
 }
 
 /// 群消息事件发送者
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GroupSender {
     /// 发送者 QQ 号
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 昵称
+    #[serde(default)]
     pub nickname: String,
     /// 群名片|备注
+    #[serde(default)]
     pub card: String,
     /// 性别 male|female|unkown
     // pub sex: String,
@@ -203,8 +231,10 @@ pub struct GroupSender {
     /// 成员等级
     // pub level: String,
     /// 角色 owner|admin|member
+    #[serde(default)]
     pub role: String,
     /// 专属头衔
+    #[serde(default)]
     pub title: String,
 }
 
@@ -306,6 +336,7 @@ pub struct FriendRecallNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 被撤回的消息 ID
+    #[serde(default, deserialize_with = "lenient_i64_deserializer")]
     pub message_id: i64,
 }
 
@@ -323,9 +354,10 @@ pub struct GroupRecallNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 被撤回的消息 ID
+    #[serde(default, deserialize_with = "lenient_i64_deserializer")]
     pub message_id: i64,
     /// 操作者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub operator_id: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -342,9 +374,10 @@ pub struct GroupIncreaseNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 操作者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub operator_id: String,
     /// 子类型
+    #[serde(default)]
     pub sub_type: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -361,9 +394,10 @@ pub struct GroupDecreaseNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 操作者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub operator_id: String,
     /// 子类型
+    #[serde(default)]
     pub sub_type: String,
 }
 
@@ -381,11 +415,13 @@ pub struct GroupBanNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 操作者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub operator_id: String,
     /// 禁言时长，单位秒
+    #[serde(default)]
     pub duration: i64,
     /// 子类型
+    #[serde(default)]
     pub sub_type: String,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -399,13 +435,16 @@ pub struct GroupMessageEmojiLikeNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub group_id: String,
     /// 发送者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// is add
+    #[serde(default)]
     pub is_add: bool,
     /// likes
+    #[serde(default)]
     pub likes: serde_json::Value,
     /// message_id
+    #[serde(default, deserialize_with = "lenient_i64_deserializer")]
     pub message_id: i64,
 }
 
@@ -423,8 +462,10 @@ pub struct GroupCardNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 新群名片
+    #[serde(default)]
     pub card_new: String,
     /// 旧群名片
+    #[serde(default)]
     pub card_old: String,
 }
 
@@ -442,18 +483,23 @@ pub struct GroupUploadNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 上传文件信息
+    #[serde(default)]
     pub file: GroupUploadFile,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GroupUploadFile {
     /// 文件 ID
+    #[serde(default)]
     pub id: String,
     /// 文件名
+    #[serde(default)]
     pub name: String,
     /// 文件大小
+    #[serde(default, deserialize_with = "lenient_i64_deserializer")]
     pub size: i64,
     /// busid
+    #[serde(default, deserialize_with = "lenient_i64_deserializer")]
     pub busid: i64,
 }
 
@@ -465,20 +511,22 @@ pub struct EssenceNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 被设为精华的消息 ID
+    #[serde(default, deserialize_with = "lenient_i64_deserializer")]
     pub message_id: i64,
     /// 消息发送者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub sender_id: String,
     /// 子类型 add|delete
+    #[serde(default)]
     pub sub_type: String,
     /// 群号
     #[serde(deserialize_with = "id_deserializer")]
     pub group_id: String,
     /// 发送者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 操作者 ID
-    #[serde(deserialize_with = "id_deserializer")]
+    #[serde(default, deserialize_with = "id_deserializer")]
     pub operator_id: String,
 }
 
@@ -502,6 +550,7 @@ pub struct GroupAdminNoticeEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 子类型 set|unset
+    #[serde(default)]
     pub sub_type: String,
     /// 群号
     #[serde(deserialize_with = "id_deserializer")]
@@ -527,8 +576,10 @@ pub struct RequestEvent {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 验证信息
+    #[serde(default)]
     pub comment: String,
     /// 请求 flag
+    #[serde(default)]
     pub flag: String,
     /// 请求子类型
     pub sub_type: Option<String>,

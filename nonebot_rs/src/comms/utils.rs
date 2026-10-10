@@ -1,6 +1,8 @@
+use crate::adapter::{Adapter, AdapterErrorKind};
 use crate::{event::Event, ActionSender, EventSender};
 use colored::*;
 use futures_util::{stream::SplitStream, SinkExt, StreamExt};
+use std::sync::Arc;
 use tokio::{
     net::TcpStream,
     sync::{broadcast, watch},
@@ -15,11 +17,13 @@ pub async fn handler_web_socket(
     apiresp_watch_sender: tokio::sync::watch::Sender<crate::ApiResp>,
     mut api_receiver: tokio::sync::mpsc::Receiver<crate::ApiChannelItem>,
     bot_id: String,
+    adapter: Arc<dyn Adapter>,
 ) {
     // 将 websocket 接收流与发送流分离
     let (mut sink, mut stream) = socket.split();
     // 接收消息
     let another_event_sender = event_sender.clone();
+    let income_adapter = adapter.clone();
     let income = async move {
         loop {
             let r = stream_recv(
@@ -28,6 +32,7 @@ pub async fn handler_web_socket(
                 &action_sender,
                 &apiresp_watch_sender,
                 bot_id.clone(),
+                income_adapter.clone(),
             )
             .await;
             if let Some(s) = r {
@@ -43,9 +48,20 @@ pub async fn handler_web_socket(
             match data {
                 // Onebot Api
                 crate::ApiChannelItem::Api(api) => {
-                    let json_string = serde_json::to_string(&api).unwrap_or_default();
-                    //println!("-> {}",json_string);
-                    sink.send(TuMessage::text(json_string)).await.ok();
+                    match adapter.encode_api(&api) {
+                        Ok(json_string) => {
+                            //println!("-> {}",json_string);
+                            sink.send(TuMessage::text(json_string)).await.ok();
+                        }
+                        Err(e) => {
+                            event!(
+                                Level::ERROR,
+                                "适配器 [{}] 编码 Api 失败: {}",
+                                adapter.name(),
+                                e
+                            );
+                        }
+                    }
                 }
                 // temp Matcher event
                 crate::ApiChannelItem::MessageEvent(_) => {
@@ -76,35 +92,41 @@ async fn stream_recv(
     action_sender: &ActionSender,
     apiresp_watch_sender: &watch::Sender<crate::api_resp::ApiResp>,
     bot_id: String,
+    adapter: Arc<dyn Adapter>,
 ) -> Option<SplitStream<WebSocketStream<TcpStream>>> {
     let (msg, next_stream) = stream.into_future().await;
     if let Some(msg) = msg {
         use crate::event::RecvItem;
         if let Ok(msg) = msg {
             // println!("{}",msg.to_text().unwrap());
-            let data: serde_json::Result<RecvItem> =
-                serde_json::from_str(msg.to_text().unwrap_or(""));
-            match data {
-                Ok(data) => match data {
-                    RecvItem::Event(event) => send_event(&event_sender, event).await,
-                    RecvItem::ApiResp(api_resp) => {
-                        let _ = apiresp_watch_sender.send(api_resp);
+            let raw = msg.to_text().unwrap_or("");
+            match adapter.parse_frame(raw) {
+                Ok(items) => {
+                    for item in items {
+                        match item {
+                            RecvItem::Event(event) => send_event(event_sender, event).await,
+                            RecvItem::ApiResp(api_resp) => {
+                                let _ = apiresp_watch_sender.send(api_resp);
+                            }
+                        }
                     }
-                },
+                }
                 Err(e) => {
-                    event!(
-                        Level::ERROR,
-                        "Serialize msg failed! Msg:{}\nError:{}",
-                        msg.to_text().unwrap_or(""),
-                        e
-                    );
+                    match e.kind {
+                        AdapterErrorKind::Malformed => {
+                            event!(Level::ERROR, "Discard message: {}\nRaw: {}", e, raw)
+                        }
+                        AdapterErrorKind::Unsupported | AdapterErrorKind::Decode => {
+                            event!(Level::WARN, "Discard message: {}\nRaw: {}", e, raw)
+                        }
+                    }
                     if crate::config::debug_enabled() {
                         use std::io::Write;
                         std::fs::OpenOptions::new()
                             .create(true)
                             .append(true)
                             .open("error_msg.txt")
-                            .and_then(|mut f| writeln!(f, "{}", msg.to_text().unwrap_or("")))
+                            .and_then(|mut f| writeln!(f, "{}", raw))
                             .ok();
                     }
                     //std::process::exit(101);

@@ -1,4 +1,5 @@
-use crate::utils::id_deserializer;
+use crate::message::{message_content_deserializer, Message};
+use crate::utils::{id_deserializer, lenient_i32_deserializer};
 use serde::{Deserialize, Serialize};
 
 /// Onebot Api 响应根结构体
@@ -7,7 +8,9 @@ pub struct ApiResp {
     pub status: String,
     pub retcode: i32,
     pub data: RespData,
+    #[serde(default)]
     pub wording: String,
+    #[serde(default)]
     pub message: String,
     pub echo: String,
 }
@@ -50,6 +53,7 @@ pub enum RespData {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(deny_unknown_fields)] // 严格要求只包含 message_id 字段
 pub struct RespMessageId {
+    #[serde(deserialize_with = "lenient_i32_deserializer")]
     pub message_id: i32,
 }
 
@@ -73,14 +77,19 @@ pub struct RespPrivateMessage {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     pub time: i32,
+    #[serde(deserialize_with = "lenient_i32_deserializer")]
     pub message_id: i32,
+    #[serde(deserialize_with = "lenient_i32_deserializer")]
     pub message_seq: i32,
+    #[serde(default, deserialize_with = "lenient_i32_deserializer")]
     pub real_id: i32,
     pub sender: crate::event::PrivateSender,
     pub raw_message: String,
     pub font: i32,
     pub sub_type: String,
-    pub message: Vec<crate::message::Message>,
+    #[serde(default, deserialize_with = "message_content_deserializer")]
+    pub message: Vec<Message>,
+    #[serde(default)]
     pub message_format: String,
     pub post_type: String,
 }
@@ -92,22 +101,27 @@ pub struct RespGroupMessage {
     #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     pub time: i32,
+    #[serde(deserialize_with = "lenient_i32_deserializer")]
     pub message_id: i32,
+    #[serde(deserialize_with = "lenient_i32_deserializer")]
     pub message_seq: i32,
     pub raw_message: String,
     pub font: i32,
     pub sub_type: Option<String>,
-    pub message: Vec<crate::message::Message>,
+    #[serde(default, deserialize_with = "message_content_deserializer")]
+    pub message: Vec<Message>,
     #[serde(deserialize_with = "id_deserializer")]
     pub group_id: String,
     pub sender: crate::event::GroupSender,
+    #[serde(default)]
     pub group_name: String,
 }
 /// get_forward_msg 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct RespMessages {
-    pub message: Vec<crate::message::Message>,
+    #[serde(default, deserialize_with = "message_content_deserializer")]
+    pub message: Vec<Message>,
 }
 
 /// get_login_info 响应数据

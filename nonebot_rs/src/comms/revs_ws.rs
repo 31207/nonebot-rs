@@ -1,7 +1,9 @@
 use super::utils::handler_web_socket;
+use crate::adapter::Adapter;
 use crate::{ActionSender, EventSender};
 use colored::*;
 use http::Response as HttpResponse;
+use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, watch};
 use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
@@ -14,6 +16,7 @@ pub async fn run(
     event_sender: EventSender,
     action_sender: ActionSender,
     access_token: crate::config::AccessToken,
+    adapter: Arc<dyn Adapter>,
 ) {
     // bind address to start Tcp server
     let try_socket = TcpListener::bind(std::net::SocketAddrV4::new(host, port)).await;
@@ -30,6 +33,7 @@ pub async fn run(
                     event_sender.clone(),
                     action_sender.clone(),
                     access_token.clone(),
+                    adapter.clone(),
                 ));
             }
             Err(e) => event!(Level::WARN, "TCP connect error {}", e),
@@ -43,6 +47,7 @@ async fn accept_connection(
     event_sender: EventSender,
     action_sender: ActionSender,
     access_token: crate::config::AccessToken,
+    adapter: Arc<dyn Adapter>,
 ) {
     // check peer address
     stream
@@ -50,35 +55,20 @@ async fn accept_connection(
         .expect("connected streams should have a peer address");
     let mut output_bot_id = String::new();
 
-    // callback to check headers && get bot_id
+    // callback to check headers && get bot_id, 握手规则交由适配器处理
+    let handshake_adapter = adapter.clone();
     let callback =
         |req: &Request, resp: Response| -> Result<Response, HttpResponse<Option<String>>> {
-            let headers = req.headers();
-            if let (Some(bot_id), Some(client_role), Some(user_agent)) = (
-                headers.get("X-Self-ID"),
-                headers.get("X-Client-Role"),
-                headers.get("User-Agent"),
-            ) {
-                let bot_id = bot_id.to_str().unwrap_or("");
-                output_bot_id = bot_id.to_owned();
-                let client_role = client_role.to_str().unwrap_or("");
-                let user_agent = user_agent.to_str().unwrap_or("");
-                let auth: Option<String> = headers
-                    .get("Authorization")
-                    .map(|auth| auth.to_str().unwrap_or("").to_owned());
-
-                if client_role == "Universal" && access_token.check_auth(bot_id, auth) {
-                    event!(
-                        Level::INFO,
-                        "{} Client {} is connectted. The client type is {}",
-                        user_agent.bright_yellow(),
-                        bot_id.red(),
-                        client_role.bright_cyan()
-                    );
-                    return Ok(resp);
+            match handshake_adapter.handshake(req.headers(), &access_token) {
+                Ok(bot_id) => {
+                    output_bot_id = bot_id;
+                    Ok(resp)
+                }
+                Err(e) => {
+                    event!(Level::WARN, "WebSocket handshake rejected: {}", e.red());
+                    Err(HttpResponse::new(None))
                 }
             }
-            Err(HttpResponse::new(None))
         };
 
     // Upgrade TcpStream to WebSocketStream
@@ -115,6 +105,7 @@ async fn accept_connection(
         apiresp_watch_sender,
         receiver,
         output_bot_id,
+        adapter,
     )
     .await;
 }
